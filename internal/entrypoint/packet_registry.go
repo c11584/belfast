@@ -138,7 +138,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(11030, []packets.PacketHandler{answer.ChangeLivingAreaCover})
 	packets.RegisterPacketHandler(11032, []packets.PacketHandler{answer.UpdateStoryList})
 	packets.RegisterPacketHandler(10100, []packets.PacketHandler{answer.SendHeartbeat})
-	packets.RegisterPacketHandler(11100, []packets.PacketHandler{answer.SendCmd})
+	packets.RegisterPacketHandler(11100, []packets.PacketHandler{answer.HandleConsoleCommand})
 	packets.RegisterPacketHandler(11013, []packets.PacketHandler{answer.GiveResources})
 	packets.RegisterPacketHandler(15002, []packets.PacketHandler{answer.UseItem})
 	packets.RegisterPacketHandler(15004, []packets.PacketHandler{answer.HandleLegacyItemOperation})

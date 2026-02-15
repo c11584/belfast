@@ -19,7 +19,7 @@ func TestSendCmdIntoReturnsOk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.SendCmd(&buf, client); err != nil {
+	if _, _, err := answer.HandleConsoleCommand(&buf, client); err != nil {
 		t.Fatalf("SendCmd failed: %v", err)
 	}
 
@@ -43,7 +43,7 @@ func TestSendCmdWorldResetReturnsOk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.SendCmd(&buf, client); err != nil {
+	if _, _, err := answer.HandleConsoleCommand(&buf, client); err != nil {
 		t.Fatalf("SendCmd failed: %v", err)
 	}
 
@@ -67,7 +67,7 @@ func TestSendCmdUnknownReturnsFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.SendCmd(&buf, client); err != nil {
+	if _, _, err := answer.HandleConsoleCommand(&buf, client); err != nil {
 		t.Fatalf("SendCmd failed: %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestSendCmdKickDisconnects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.SendCmd(&buf, client); err != nil {
+	if _, _, err := answer.HandleConsoleCommand(&buf, client); err != nil {
 		t.Fatalf("SendCmd failed: %v", err)
 	}
 
