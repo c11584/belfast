@@ -30,7 +30,7 @@ func TestChapterOpMoveUpdatesState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&buffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&buffer, client); err != nil {
 		t.Fatalf("chapter op failed: %v", err)
 	}
 	var response protobuf.SC_13104
@@ -73,7 +73,7 @@ func TestChapterOpRequestReturnsState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&buffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&buffer, client); err != nil {
 		t.Fatalf("chapter op failed: %v", err)
 	}
 	var response protobuf.SC_13104
@@ -104,7 +104,7 @@ func TestChapterOpRetreatClearsState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&buffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&buffer, client); err != nil {
 		t.Fatalf("chapter op failed: %v", err)
 	}
 	if _, err := orm.GetChapterState(client.Commander.CommanderID); err == nil {
@@ -130,7 +130,7 @@ func TestChapterOpEnemyRoundUpdatesRound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&buffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&buffer, client); err != nil {
 		t.Fatalf("chapter op failed: %v", err)
 	}
 	var response protobuf.SC_13104

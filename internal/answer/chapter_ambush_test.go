@@ -93,7 +93,7 @@ func TestChapterOpAmbushAvoidSuccessRemovesCell(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal move payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&moveBuffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&moveBuffer, client); err != nil {
 		t.Fatalf("chapter op move failed: %v", err)
 	}
 	client.Buffer.Reset()
@@ -103,7 +103,7 @@ func TestChapterOpAmbushAvoidSuccessRemovesCell(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal ambush payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&ambushBuffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&ambushBuffer, client); err != nil {
 		t.Fatalf("chapter op ambush failed: %v", err)
 	}
 
@@ -160,7 +160,7 @@ func TestChapterOpAmbushAvoidFailMarksCellActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal move payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&moveBuffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&moveBuffer, client); err != nil {
 		t.Fatalf("chapter op move failed: %v", err)
 	}
 	client.Buffer.Reset()
@@ -170,7 +170,7 @@ func TestChapterOpAmbushAvoidFailMarksCellActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal ambush payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&ambushBuffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&ambushBuffer, client); err != nil {
 		t.Fatalf("chapter op ambush failed: %v", err)
 	}
 
@@ -217,7 +217,7 @@ func TestChapterOpMoveTriggersAmbushWhenChanceMaxed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal move payload: %v", err)
 	}
-	if _, _, err := ChapterOp(&moveBuffer, client); err != nil {
+	if _, _, err := HandleChapterAction(&moveBuffer, client); err != nil {
 		t.Fatalf("chapter op move failed: %v", err)
 	}
 

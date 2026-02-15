@@ -302,7 +302,7 @@ func registerPackets() {
 		KR: &[]packets.PacketHandler{answer.ChapterTrackingKR},
 		TW: &[]packets.PacketHandler{answer.ChapterTracking},
 	})
-	packets.RegisterPacketHandler(13103, []packets.PacketHandler{answer.ChapterOp})
+	packets.RegisterPacketHandler(13103, []packets.PacketHandler{answer.HandleChapterAction})
 	packets.RegisterPacketHandler(13109, []packets.PacketHandler{answer.GetChapterDropShipList})
 	packets.RegisterPacketHandler(13106, []packets.PacketHandler{answer.ChapterBattleResultRequest})
 	packets.RegisterPacketHandler(13107, []packets.PacketHandler{func(b *[]byte, c *connection.Client) (int, int, error) {

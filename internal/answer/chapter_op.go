@@ -29,7 +29,7 @@ const (
 
 var chapterAmbushRand = rng.NewLockedRand()
 
-func ChapterOp(buffer *[]byte, client *connection.Client) (int, int, error) {
+func HandleChapterAction(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_13103
 	if err := proto.Unmarshal(*buffer, &payload); err != nil {
 		return 0, 13104, err
