@@ -206,6 +206,42 @@ func TestUseAddShipExpItemAppliesSurplusAtMaxLevel(t *testing.T) {
 	}
 }
 
+func TestUseAddShipExpItemDoesNotConsumeWhenShipCannotGainExp(t *testing.T) {
+	client := setupPlayerUpdateTest(t)
+	initCommanderMaps(client)
+	clearTable(t, &orm.ConfigEntry{})
+	clearTable(t, &orm.CommanderItem{})
+	clearTable(t, &orm.OwnedShip{})
+	clearTable(t, &orm.Ship{})
+
+	seedShipExpBookConfig(t)
+	seedShipForItemUse(t, client, 9005, 200005, 80, 80, 10, 0, 3)
+	seedCommanderItem(t, client, 16501, 1)
+
+	payload := protobuf.CS_22011{
+		ShipId: proto.Uint32(9005),
+		Books:  []*protobuf.ITEM_INFO{{Id: proto.Uint32(16501), Num: proto.Uint32(1)}},
+	}
+	buffer, err := proto.Marshal(&payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if _, _, err := UseAddShipExpItem(&buffer, client); err != nil {
+		t.Fatalf("use add ship exp item failed: %v", err)
+	}
+
+	var response protobuf.SC_22012
+	decodeResponse(t, client, &response)
+	if response.GetResult() != 1 {
+		t.Fatalf("expected failure result, got %d", response.GetResult())
+	}
+
+	itemCount := queryAnswerTestInt64(t, "SELECT count FROM commander_items WHERE commander_id = $1 AND item_id = $2", int64(client.Commander.CommanderID), int64(16501))
+	if itemCount != 1 {
+		t.Fatalf("expected item count unchanged, got %d", itemCount)
+	}
+}
+
 func seedShipExpBookConfig(t *testing.T) {
 	t.Helper()
 	seedConfigEntry(t, gameSetConfig, shipExpBooksGameSetKey, `{"key_value":0,"description":[16501,16502]}`)

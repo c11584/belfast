@@ -65,6 +65,9 @@ func UseAddShipExpItem(buffer *[]byte, client *connection.Client) (int, int, err
 	if err := applyOwnedShipExpGain(&updatedShip, totalExp); err != nil {
 		return 0, 22012, err
 	}
+	if updatedShip.Level == ownedShip.Level && updatedShip.Exp == ownedShip.Exp && updatedShip.SurplusExp == ownedShip.SurplusExp {
+		return client.SendMessage(22012, &response)
+	}
 
 	ctx := context.Background()
 	err = orm.WithPGXTx(ctx, func(tx pgx.Tx) error {
