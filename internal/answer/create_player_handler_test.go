@@ -365,8 +365,8 @@ func TestAuthConfirmSkipOnboarding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := answer.HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeResponsePacket(t, client, 10021, response)

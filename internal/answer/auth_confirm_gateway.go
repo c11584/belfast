@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func Forge_SC10021_Gateway(buffer *[]byte, client *connection.Client) (int, int, error) {
+func HandleGatewayAuthConfirm(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_10020
 	if err := proto.Unmarshal(*buffer, &payload); err != nil {
 		return 0, 10021, err

@@ -75,7 +75,7 @@ func formatServerName(name string, commit string) string {
 }
 
 // Answer to a pseudo CS_8239 packet with a SC_8239 packet + server list (HTTP/1.1 200 OK)
-func Forge_SC8239(buffer *[]byte, client *connection.Client) (int, int, error) {
+func WriteServerListHTTPResponse(buffer *[]byte, client *connection.Client) (int, int, error) {
 	const packetId = 8239
 	var answerBuffer bytes.Buffer
 

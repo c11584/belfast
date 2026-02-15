@@ -98,8 +98,8 @@ func TestLocalLoginSuccessNoCommander(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeLoginResponse(t, client, 10021, response)
@@ -132,8 +132,8 @@ func TestLocalLoginSuccessWithCommander(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeLoginResponse(t, client, 10021, response)
@@ -160,8 +160,8 @@ func TestLocalLoginWrongPassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeLoginResponse(t, client, 10021, response)
@@ -182,8 +182,8 @@ func TestLocalLoginUnknownAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeLoginResponse(t, client, 10021, response)
@@ -207,8 +207,8 @@ func TestLocalLoginSkipOnboardingCreatesCommander(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	if _, _, err := Forge_SC10021(&buf, client); err != nil {
-		t.Fatalf("Forge_SC10021 failed: %v", err)
+	if _, _, err := HandleAuthConfirm(&buf, client); err != nil {
+		t.Fatalf("HandleAuthConfirm failed: %v", err)
 	}
 	response := &protobuf.SC_10021{}
 	decodeLoginResponse(t, client, 10021, response)

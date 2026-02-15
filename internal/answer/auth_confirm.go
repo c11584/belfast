@@ -21,7 +21,7 @@ func updateServerList(servers []config.ServerConfig) {
 	protoValidAnswer.Serverlist = Servers
 }
 
-func Forge_SC10021(buffer *[]byte, client *connection.Client) (int, int, error) {
+func HandleAuthConfirm(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_10020
 	err := proto.Unmarshal(*buffer, &payload)
 	if err != nil {

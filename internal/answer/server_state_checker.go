@@ -9,7 +9,7 @@ import (
 	"github.com/ggmolly/belfast/internal/protobuf"
 )
 
-func Forge_SC10019(buffer *[]byte, client *connection.Client) (int, int, error) {
+func HandleServerStateCheck(buffer *[]byte, client *connection.Client) (int, int, error) {
 	response := protobuf.SC_10019{}
 
 	// Update server list

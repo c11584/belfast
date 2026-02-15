@@ -19,15 +19,15 @@ var validRegions = map[string]interface{}{
 func registerPackets() {
 	packets.RegisterPacketHandler(10800, []packets.PacketHandler{answer.HandleUpdateCheck})
 	packets.RegisterPacketHandler(10700, []packets.PacketHandler{answer.GatewayPackInfo})
-	packets.RegisterPacketHandler(8239, []packets.PacketHandler{answer.Forge_SC8239})
-	packets.RegisterPacketHandler(10020, []packets.PacketHandler{answer.Forge_SC10021})
+	packets.RegisterPacketHandler(8239, []packets.PacketHandler{answer.WriteServerListHTTPResponse})
+	packets.RegisterPacketHandler(10020, []packets.PacketHandler{answer.HandleAuthConfirm})
 	packets.RegisterLocalizedPacketHandler(10802, packets.LocalizedHandler{
 		CN: &[]packets.PacketHandler{answer.BuildServerInterconnectionResponse},
 		TW: &[]packets.PacketHandler{answer.BuildServerInterconnectionResponse},
 		JP: &[]packets.PacketHandler{answer.BuildServerInterconnectionResponse},
 		KR: &[]packets.PacketHandler{answer.BuildServerInterconnectionResponse},
 	})
-	packets.RegisterPacketHandler(10018, []packets.PacketHandler{answer.Forge_SC10019})
+	packets.RegisterPacketHandler(10018, []packets.PacketHandler{answer.HandleServerStateCheck})
 	packets.RegisterPacketHandler(10022, []packets.PacketHandler{answer.JoinServer})
 	packets.RegisterPacketHandler(10024, []packets.PacketHandler{answer.CreateNewPlayer})
 	packets.RegisterPacketHandler(10026, []packets.PacketHandler{answer.PlayerExist})
