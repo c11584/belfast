@@ -211,7 +211,6 @@ func submitTaskWithOptionalTicket(client *connection.Client, taskID uint32, temp
 			if err := orm.UpsertCommanderTaskProgressTx(ctx, tx, client.Commander.CommanderID, taskID, orm.TaskProgressUpdate, template.TargetNum, template.TargetNum, now); err != nil {
 				return err
 			}
-			task.Progress = template.TargetNum
 		}
 		if task == nil {
 			task, err = orm.GetCommanderTaskTx(ctx, tx, client.Commander.CommanderID, taskID)
