@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func TestItemOp15004Success(t *testing.T) {
+func TestHandleLegacyItemOperationSuccess(t *testing.T) {
 	client := setupHandlerCommander(t)
 	client.Buffer.Reset()
 
@@ -17,7 +17,7 @@ func TestItemOp15004Success(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 
-	if _, _, err := ItemOp15004(&buffer, client); err != nil {
+	if _, _, err := HandleLegacyItemOperation(&buffer, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 
@@ -28,12 +28,12 @@ func TestItemOp15004Success(t *testing.T) {
 	}
 }
 
-func TestItemOp15004UnmarshalFailure(t *testing.T) {
+func TestHandleLegacyItemOperationUnmarshalFailure(t *testing.T) {
 	client := setupHandlerCommander(t)
 	client.Buffer.Reset()
 
 	buffer := []byte{0xff}
-	if _, _, err := ItemOp15004(&buffer, client); err == nil {
+	if _, _, err := HandleLegacyItemOperation(&buffer, client); err == nil {
 		t.Fatalf("expected unmarshal error")
 	}
 	if client.Buffer.Len() != 0 {
