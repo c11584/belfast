@@ -43,8 +43,8 @@ func setupActivityTaskTestClient(t *testing.T) *connection.Client {
 	}
 
 	seedConfigEntry(t, "ShareCfg/activity_template.json", "5000", `{"id":5000,"type":36,"config_data":[7001,7002]}`)
-	seedConfigEntry(t, "ShareCfg/task_data_template.json", "7001", `{"id":7001,"quick_finish":2,"award_display":[[1,1,100],[2,20001,1]]}`)
-	seedConfigEntry(t, "ShareCfg/task_data_template.json", "7002", `{"id":7002,"quick_finish":1,"award_display":[[1,1,20]]}`)
+	seedConfigEntry(t, "ShareCfg/task_data_template.json", "7001", `{"id":7001,"target_num":5,"quick_finish":2,"award_display":[[1,1,100],[2,20001,1]]}`)
+	seedConfigEntry(t, "ShareCfg/task_data_template.json", "7002", `{"id":7002,"target_num":3,"quick_finish":1,"award_display":[[1,1,20]]}`)
 
 	commander := &orm.Commander{CommanderID: 9001}
 	if err := commander.Load(); err != nil {
@@ -55,6 +55,7 @@ func setupActivityTaskTestClient(t *testing.T) *connection.Client {
 
 func TestSubmitActivityTaskSuccess(t *testing.T) {
 	client := setupActivityTaskTestClient(t)
+	seedActivityTaskProgress(t, 9001, 5000, 7001, 5)
 
 	payload := &protobuf.CS_20205{ActId: proto.Uint32(5000), TaskIds: []uint32{7001}}
 	buffer, err := proto.Marshal(payload)
@@ -83,6 +84,32 @@ func TestSubmitActivityTaskSuccess(t *testing.T) {
 	}
 	if !state.Submitted {
 		t.Fatalf("expected submitted state")
+	}
+}
+
+func TestSubmitActivityTaskRejectsIncompleteTask(t *testing.T) {
+	client := setupActivityTaskTestClient(t)
+	seedActivityTaskProgress(t, 9001, 5000, 7001, 4)
+
+	payload := &protobuf.CS_20205{ActId: proto.Uint32(5000), TaskIds: []uint32{7001}}
+	buffer, err := proto.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	if _, packetID, err := SubmitActivityTask(&buffer, client); err != nil {
+		t.Fatalf("submit activity task failed: %v", err)
+	} else if packetID != 20206 {
+		t.Fatalf("expected packet 20206, got %d", packetID)
+	}
+
+	var response protobuf.SC_20206
+	decodeResponse(t, client, &response)
+	if response.GetResult() != 1 {
+		t.Fatalf("expected failure result, got %d", response.GetResult())
+	}
+	if len(response.GetAwardList()) != 0 {
+		t.Fatalf("expected no awards, got %d", len(response.GetAwardList()))
 	}
 }
 
@@ -180,4 +207,14 @@ VALUES ($1, $2, $3, $4, $5)
 	offset = decodePacketAt(t, client, offset, 20203, &sc20203)
 	var sc20204 protobuf.SC_20204
 	_ = decodePacketAt(t, client, offset, 20204, &sc20204)
+}
+
+func seedActivityTaskProgress(t *testing.T, commanderID uint32, actID uint32, taskID uint32, progress uint32) {
+	t.Helper()
+	if _, err := db.DefaultStore.Pool.Exec(context.Background(), `
+INSERT INTO commander_activity_tasks (commander_id, act_id, task_id, progress, submitted)
+VALUES ($1, $2, $3, $4, false)
+`, int64(commanderID), int64(actID), int64(taskID), int64(progress)); err != nil {
+		t.Fatalf("seed activity task progress: %v", err)
+	}
 }

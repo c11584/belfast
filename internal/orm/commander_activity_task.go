@@ -14,6 +14,7 @@ var ErrInvalidActivityTaskProgressMode = errors.New("invalid activity task progr
 const (
 	ActivityTaskProgressModeSet    = uint32(0)
 	ActivityTaskProgressModeAppend = uint32(1)
+	maxUint32Value                 = uint64(^uint32(0))
 )
 
 type CommanderActivityTask struct {
@@ -80,6 +81,22 @@ WHERE commander_activity_tasks.submitted = false
 	return result.RowsAffected() == 1, nil
 }
 
+func TrySubmitReadyCommanderActivityTaskTx(ctx context.Context, tx pgx.Tx, commanderID uint32, actID uint32, taskID uint32, requiredProgress uint32) (bool, error) {
+	result, err := tx.Exec(ctx, `
+UPDATE commander_activity_tasks
+SET submitted = true, updated_at = now()
+WHERE commander_id = $1
+  AND act_id = $2
+  AND task_id = $3
+  AND submitted = false
+  AND progress >= $4
+`, int64(commanderID), int64(actID), int64(taskID), int64(requiredProgress))
+	if err != nil {
+		return false, err
+	}
+	return result.RowsAffected() == 1, nil
+}
+
 func UpsertCommanderActivityTaskProgressTx(ctx context.Context, tx pgx.Tx, commanderID uint32, actID uint32, taskID uint32, mode uint32, progress uint32) error {
 	switch mode {
 	case ActivityTaskProgressModeSet:
@@ -87,16 +104,16 @@ func UpsertCommanderActivityTaskProgressTx(ctx context.Context, tx pgx.Tx, comma
 INSERT INTO commander_activity_tasks (commander_id, act_id, task_id, progress, submitted, updated_at)
 VALUES ($1, $2, $3, $4, false, now())
 ON CONFLICT (commander_id, act_id, task_id)
-DO UPDATE SET progress = EXCLUDED.progress, updated_at = now()
-`, int64(commanderID), int64(actID), int64(taskID), int64(progress))
+DO UPDATE SET progress = LEAST(EXCLUDED.progress, $5), updated_at = now()
+`, int64(commanderID), int64(actID), int64(taskID), int64(progress), maxUint32Value)
 		return err
 	case ActivityTaskProgressModeAppend:
 		_, err := tx.Exec(ctx, `
 INSERT INTO commander_activity_tasks (commander_id, act_id, task_id, progress, submitted, updated_at)
 VALUES ($1, $2, $3, $4, false, now())
 ON CONFLICT (commander_id, act_id, task_id)
-DO UPDATE SET progress = commander_activity_tasks.progress + EXCLUDED.progress, updated_at = now()
-`, int64(commanderID), int64(actID), int64(taskID), int64(progress))
+DO UPDATE SET progress = LEAST(commander_activity_tasks.progress + EXCLUDED.progress, $5), updated_at = now()
+`, int64(commanderID), int64(actID), int64(taskID), int64(progress), maxUint32Value)
 		return err
 	default:
 		return ErrInvalidActivityTaskProgressMode

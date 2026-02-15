@@ -57,7 +57,8 @@ func SubmitActivityTask(buffer *[]byte, client *connection.Client) (int, int, er
 
 	err = orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 		for _, taskID := range orderedTaskIDs {
-			submitted, err := orm.TrySubmitCommanderActivityTaskTx(context.Background(), tx, client.Commander.CommanderID, actID, taskID)
+			template := templates[taskID]
+			submitted, err := orm.TrySubmitReadyCommanderActivityTaskTx(context.Background(), tx, client.Commander.CommanderID, actID, taskID, template.TargetNum)
 			if err != nil {
 				return err
 			}
@@ -65,7 +66,6 @@ func SubmitActivityTask(buffer *[]byte, client *connection.Client) (int, int, er
 				return errActivityTaskRejected
 			}
 
-			template := templates[taskID]
 			taskDrops, err := buildAwardDropMap(template.AwardDisplay)
 			if err != nil {
 				return err

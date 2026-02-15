@@ -27,6 +27,7 @@ const quickTaskTicketItemID uint32 = 15013
 type activityTaskTemplate struct {
 	ID           uint32     `json:"id"`
 	QuickFinish  uint32     `json:"quick_finish"`
+	TargetNum    uint32     `json:"target_num"`
 	AwardDisplay [][]uint32 `json:"award_display"`
 }
 
