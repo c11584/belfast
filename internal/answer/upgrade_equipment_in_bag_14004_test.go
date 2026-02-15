@@ -59,7 +59,7 @@ func seedUpgradeEquipmentCostDefs(t *testing.T) {
 	execAnswerExternalTestSQLT(t, "INSERT INTO items (id, name, rarity, shop_id, type, virtual_type) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING", int64(200), "Upgrade Material", int64(1), int64(0), int64(1), int64(0))
 }
 
-func TestUpgradeEquipmentInBag14004EquipIDZero(t *testing.T) {
+func TestUpgradeEquipmentInBagEquipIDZero(t *testing.T) {
 	client := &connection.Client{Commander: &orm.Commander{CommanderID: 9004701, AccountID: 9004701, Name: "equip-zero"}}
 
 	payload := &protobuf.CS_14004{EquipId: proto.Uint32(0), Lv: proto.Uint32(1)}
@@ -67,7 +67,7 @@ func TestUpgradeEquipmentInBag14004EquipIDZero(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.UpgradeEquipmentInBag14004(&buf, client); err != nil {
+	if _, _, err := answer.UpgradeEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := decodeSC14005(t, client)
@@ -76,7 +76,7 @@ func TestUpgradeEquipmentInBag14004EquipIDZero(t *testing.T) {
 	}
 }
 
-func TestUpgradeEquipmentInBag14004LvZero(t *testing.T) {
+func TestUpgradeEquipmentInBagLvZero(t *testing.T) {
 	client := &connection.Client{Commander: &orm.Commander{CommanderID: 9004702, AccountID: 9004702, Name: "lv-zero"}}
 
 	payload := &protobuf.CS_14004{EquipId: proto.Uint32(100), Lv: proto.Uint32(0)}
@@ -84,7 +84,7 @@ func TestUpgradeEquipmentInBag14004LvZero(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.UpgradeEquipmentInBag14004(&buf, client); err != nil {
+	if _, _, err := answer.UpgradeEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := decodeSC14005(t, client)
@@ -93,7 +93,7 @@ func TestUpgradeEquipmentInBag14004LvZero(t *testing.T) {
 	}
 }
 
-func TestUpgradeEquipmentInBag14004SuccessMutatesBag(t *testing.T) {
+func TestUpgradeEquipmentInBagSuccessMutatesBag(t *testing.T) {
 	commander := orm.Commander{CommanderID: 9004703, AccountID: 9004703, Name: "upgrade-success"}
 	if err := orm.CreateCommanderRoot(commander.CommanderID, commander.AccountID, commander.Name, 0, 0); err != nil {
 		t.Fatalf("failed to create commander: %v", err)
@@ -112,7 +112,7 @@ func TestUpgradeEquipmentInBag14004SuccessMutatesBag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.UpgradeEquipmentInBag14004(&buf, client); err != nil {
+	if _, _, err := answer.UpgradeEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := decodeSC14005(t, client)
@@ -130,7 +130,7 @@ func TestUpgradeEquipmentInBag14004SuccessMutatesBag(t *testing.T) {
 	}
 }
 
-func TestUpgradeEquipmentInBag14004MissingChainDoesNotMutate(t *testing.T) {
+func TestUpgradeEquipmentInBagMissingChainDoesNotMutate(t *testing.T) {
 	commander := orm.Commander{CommanderID: 9004704, AccountID: 9004704, Name: "upgrade-missing"}
 	if err := orm.CreateCommanderRoot(commander.CommanderID, commander.AccountID, commander.Name, 0, 0); err != nil {
 		t.Fatalf("failed to create commander: %v", err)
@@ -146,7 +146,7 @@ func TestUpgradeEquipmentInBag14004MissingChainDoesNotMutate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.UpgradeEquipmentInBag14004(&buf, client); err != nil {
+	if _, _, err := answer.UpgradeEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := decodeSC14005(t, client)
@@ -160,7 +160,7 @@ func TestUpgradeEquipmentInBag14004MissingChainDoesNotMutate(t *testing.T) {
 	}
 }
 
-func TestUpgradeEquipmentInBag14004ChargesUpgradeCosts(t *testing.T) {
+func TestUpgradeEquipmentInBagChargesUpgradeCosts(t *testing.T) {
 	commander := orm.Commander{CommanderID: 9004705, AccountID: 9004705, Name: "upgrade-costs"}
 	if err := orm.CreateCommanderRoot(commander.CommanderID, commander.AccountID, commander.Name, 0, 0); err != nil {
 		t.Fatalf("failed to create commander: %v", err)
@@ -181,7 +181,7 @@ func TestUpgradeEquipmentInBag14004ChargesUpgradeCosts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.UpgradeEquipmentInBag14004(&buf, client); err != nil {
+	if _, _, err := answer.UpgradeEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := decodeSC14005(t, client)
