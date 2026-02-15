@@ -274,7 +274,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(14008, []packets.PacketHandler{answer.DestroyEquipments})
 	packets.RegisterPacketHandler(14010, []packets.PacketHandler{answer.RevertEquipment})
 	packets.RegisterPacketHandler(14013, []packets.PacketHandler{answer.TransformEquipmentOnShip})
-	packets.RegisterPacketHandler(14015, []packets.PacketHandler{answer.TransformEquipmentInBag14015})
+	packets.RegisterPacketHandler(14015, []packets.PacketHandler{answer.TransformEquipmentInBag})
 	packets.RegisterPacketHandler(14201, []packets.PacketHandler{answer.EquipSpWeapon})
 	packets.RegisterPacketHandler(14203, []packets.PacketHandler{answer.UpgradeSpWeapon})
 	packets.RegisterPacketHandler(14205, []packets.PacketHandler{answer.ReforgeSpWeapon})

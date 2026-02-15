@@ -20,7 +20,7 @@ func sendCS14015(t *testing.T, client *connection.Client, equipID uint32, upgrad
 		t.Fatalf("marshal payload: %v", err)
 	}
 	client.Buffer.Reset()
-	if _, _, err := answer.TransformEquipmentInBag14015(&buf, client); err != nil {
+	if _, _, err := answer.TransformEquipmentInBag(&buf, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	response := &protobuf.SC_14016{}
