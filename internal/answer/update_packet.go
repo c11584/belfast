@@ -23,15 +23,15 @@ var (
 )
 
 // Answer to a CS_10800 packet with a SC_10801 packet + hashes
-func Forge_SC10801(buffer *[]byte, client *connection.Client) (int, int, error) {
-	return forgeSC10801(buffer, client, misc.GetGameHashesWithUpdate)
+func HandleUpdateCheck(buffer *[]byte, client *connection.Client) (int, int, error) {
+	return buildUpdateCheckResponse(buffer, client, misc.GetGameHashesWithUpdate)
 }
 
-func Forge_SC10801_Gateway(buffer *[]byte, client *connection.Client) (int, int, error) {
-	return forgeSC10801(buffer, client, misc.GetGameHashes)
+func HandleGatewayUpdateCheck(buffer *[]byte, client *connection.Client) (int, int, error) {
+	return buildUpdateCheckResponse(buffer, client, misc.GetGameHashes)
 }
 
-func forgeSC10801(buffer *[]byte, client *connection.Client, hashesFn func() misc.HashMap) (int, int, error) {
+func buildUpdateCheckResponse(buffer *[]byte, client *connection.Client, hashesFn func() misc.HashMap) (int, int, error) {
 	const packetId = 10801
 	var updateCheck protobuf.CS_10800
 	err := proto.Unmarshal(*buffer, &updateCheck)
