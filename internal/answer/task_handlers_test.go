@@ -65,27 +65,41 @@ func TestUpdateTaskProgressRejectsInvalidMode(t *testing.T) {
 	}
 }
 
-func TestUpdateActivityTaskProgressPersists(t *testing.T) {
+func TestTaskProgressEventValidPayload(t *testing.T) {
 	client := setupPlayerUpdateTest(t)
-	seedTaskTemplate(t, 9101, 10, 0, `[[1,1,10]]`)
 
-	request := &protobuf.CS_20209{Progressinfo: []*protobuf.ACT_TASK_UPDATE{{ActId: proto.Uint32(3001), TaskId: proto.Uint32(9101), Mode: proto.Uint32(0), Progress: proto.Uint32(6)}}}
+	request := &protobuf.CS_20016{EventType: proto.Uint32(1), EventTarget: proto.Uint32(9101), EventCount: proto.Uint32(2)}
 	buf, err := proto.Marshal(request)
 	if err != nil {
 		t.Fatalf("marshal request: %v", err)
 	}
-	if _, _, err := UpdateActivityTaskProgress(&buf, client); err != nil {
-		t.Fatalf("UpdateActivityTaskProgress: %v", err)
+	if _, _, err := TaskProgressEvent(&buf, client); err != nil {
+		t.Fatalf("TaskProgressEvent: %v", err)
 	}
 
-	var response protobuf.SC_20210
-	decodePacketAt(t, client, 0, 20210, &response)
+	var response protobuf.SC_20017
+	decodePacketAt(t, client, 0, 20017, &response)
 	if response.GetResult() != 0 {
 		t.Fatalf("expected result=0, got %d", response.GetResult())
 	}
-	progress := queryAnswerTestInt64(t, "SELECT progress FROM commander_activity_task_progresses WHERE commander_id = $1 AND activity_id = $2 AND task_id = $3", int64(client.Commander.CommanderID), int64(3001), int64(9101))
-	if progress != 6 {
-		t.Fatalf("expected progress=6, got %d", progress)
+}
+
+func TestTaskProgressEventInvalidPayload(t *testing.T) {
+	client := setupPlayerUpdateTest(t)
+
+	request := &protobuf.CS_20016{EventType: proto.Uint32(1), EventTarget: proto.Uint32(0), EventCount: proto.Uint32(0)}
+	buf, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	if _, _, err := TaskProgressEvent(&buf, client); err != nil {
+		t.Fatalf("TaskProgressEvent: %v", err)
+	}
+
+	var response protobuf.SC_20017
+	decodePacketAt(t, client, 0, 20017, &response)
+	if response.GetResult() == 0 {
+		t.Fatalf("expected non-zero result for invalid payload")
 	}
 }
 

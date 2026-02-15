@@ -23,19 +23,8 @@ type CommanderTask struct {
 	SubmitTime  uint32 `gorm:"not null;default:0"`
 }
 
-type CommanderActivityTaskProgress struct {
-	CommanderID uint32 `gorm:"primaryKey;autoIncrement:false"`
-	ActivityID  uint32 `gorm:"primaryKey;autoIncrement:false"`
-	TaskID      uint32 `gorm:"primaryKey;autoIncrement:false"`
-	Progress    uint32 `gorm:"not null;default:0"`
-}
-
 func (CommanderTask) TableName() string {
 	return "commander_tasks"
-}
-
-func (CommanderActivityTaskProgress) TableName() string {
-	return "commander_activity_task_progresses"
 }
 
 func ListCommanderTasks(commanderID uint32) ([]CommanderTask, error) {
@@ -100,22 +89,6 @@ DO UPDATE SET progress = CASE
   ELSE CASE WHEN $5 > 0 THEN LEAST(commander_tasks.progress + $4, $5) ELSE commander_tasks.progress + $4 END
 END
 `, int64(commanderID), int64(taskID), int64(mode), int64(progress), int64(targetNum), int64(now))
-	return err
-}
-
-func UpsertCommanderActivityTaskProgressTx(ctx context.Context, tx pgx.Tx, commanderID uint32, activityID uint32, taskID uint32, mode uint32, progress uint32) error {
-	if mode != TaskProgressUpdate && mode != TaskProgressAppend {
-		return fmt.Errorf("unsupported progress mode %d", mode)
-	}
-	_, err := tx.Exec(ctx, `
-INSERT INTO commander_activity_task_progresses (commander_id, activity_id, task_id, progress)
-VALUES ($1, $2, $3, $5)
-ON CONFLICT (commander_id, activity_id, task_id)
-DO UPDATE SET progress = CASE
-  WHEN $4 = 0 THEN $5
-  ELSE commander_activity_task_progresses.progress + $5
-END
-`, int64(commanderID), int64(activityID), int64(taskID), int64(mode), int64(progress))
 	return err
 }
 

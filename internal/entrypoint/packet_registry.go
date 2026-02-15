@@ -250,7 +250,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(20009, []packets.PacketHandler{answer.UpdateTaskProgress})
 	packets.RegisterPacketHandler(20011, []packets.PacketHandler{answer.SubmitTaskBatch})
 	packets.RegisterPacketHandler(20013, []packets.PacketHandler{answer.SubmitQuickTask})
-	packets.RegisterPacketHandler(20209, []packets.PacketHandler{answer.UpdateActivityTaskProgress})
+	packets.RegisterPacketHandler(20016, []packets.PacketHandler{answer.TaskProgressEvent})
 	packets.RegisterPacketHandler(11011, []packets.PacketHandler{answer.UpdateSecretaries})
 	packets.RegisterPacketHandler(12038, []packets.PacketHandler{answer.UpgradeShipMaxLevel})
 	packets.RegisterPacketHandler(12040, []packets.PacketHandler{answer.SetFavoriteShip})

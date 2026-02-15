@@ -70,43 +70,22 @@ func UpdateTaskProgress(buffer *[]byte, client *connection.Client) (int, int, er
 	return client.SendMessage(20010, &response)
 }
 
-func UpdateActivityTaskProgress(buffer *[]byte, client *connection.Client) (int, int, error) {
-	var payload protobuf.CS_20209
+func TaskProgressEvent(buffer *[]byte, client *connection.Client) (int, int, error) {
+	var payload protobuf.CS_20016
 	if err := proto.Unmarshal(*buffer, &payload); err != nil {
-		return 0, 20210, err
+		return 0, 20017, err
 	}
 
-	response := protobuf.SC_20210{Result: proto.Uint32(taskResultFailed)}
-	updates := payload.GetProgressinfo()
-	if len(updates) == 0 {
-		return client.SendMessage(20210, &response)
+	response := protobuf.SC_20017{Result: proto.Uint32(taskResultFailed)}
+	if payload.EventType == nil || payload.EventTarget == nil || payload.EventCount == nil {
+		return client.SendMessage(20017, &response)
 	}
-
-	err := orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
-		for _, update := range updates {
-			if update == nil || update.ActId == nil || update.TaskId == nil || update.Mode == nil || update.Progress == nil {
-				return errors.New("invalid activity task update")
-			}
-			template, ok, err := loadTaskTemplate(update.GetTaskId())
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return errors.New("unknown task id")
-			}
-			_ = template
-			if err := orm.UpsertCommanderActivityTaskProgressTx(context.Background(), tx, client.Commander.CommanderID, update.GetActId(), update.GetTaskId(), update.GetMode(), update.GetProgress()); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return client.SendMessage(20210, &response)
+	if payload.GetEventType() == 0 || payload.GetEventTarget() == 0 || payload.GetEventCount() == 0 {
+		return client.SendMessage(20017, &response)
 	}
 
 	response.Result = proto.Uint32(taskResultSuccess)
-	return client.SendMessage(20210, &response)
+	return client.SendMessage(20017, &response)
 }
 
 func SubmitTask(buffer *[]byte, client *connection.Client) (int, int, error) {
