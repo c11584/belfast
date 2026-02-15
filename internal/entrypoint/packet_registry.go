@@ -180,7 +180,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(29092, []packets.PacketHandler{answer.NewEducateRefresh})
 	packets.RegisterPacketHandler(30101, []packets.PacketHandler{answer.CompensateNotification})
 	packets.RegisterPacketHandler(28000, []packets.PacketHandler{answer.Dorm3dApartmentData})
-	packets.RegisterPacketHandler(28026, []packets.PacketHandler{answer.Dorm3dInstagramOp})
+	packets.RegisterPacketHandler(28026, []packets.PacketHandler{answer.HandleDorm3dInstagramAction})
 	packets.RegisterPacketHandler(28028, []packets.PacketHandler{answer.Dorm3dInstagramDiscuss})
 	packets.RegisterPacketHandler(12002, []packets.PacketHandler{answer.ShipBuild})
 	packets.RegisterPacketHandler(12008, []packets.PacketHandler{answer.BuildQuickFinish})

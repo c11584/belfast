@@ -129,14 +129,14 @@ func TestDorm3dInstagramOpsPersist(t *testing.T) {
 
 	readPayload := &protobuf.CS_28026{
 		ShipId: proto.Uint32(100),
-		Type:   proto.Uint32(orm.Dorm3dInstagramOpRead),
+		Type:   proto.Uint32(orm.HandleDorm3dInstagramActionRead),
 		IdList: []uint32{55},
 	}
 	readBuf, err := proto.Marshal(readPayload)
 	if err != nil {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
-	if _, _, err := answer.Dorm3dInstagramOp(&readBuf, client); err != nil {
+	if _, _, err := answer.HandleDorm3dInstagramAction(&readBuf, client); err != nil {
 		t.Fatalf("Dorm3dInstagramOp failed: %v", err)
 	}
 	readResponse := &protobuf.SC_28027{}
