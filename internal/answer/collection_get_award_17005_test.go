@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func TestCollectionGetAward17005SuccessPersistsAndSyncs(t *testing.T) {
+func TestClaimCollectionAwardSuccessPersistsAndSyncs(t *testing.T) {
 	client := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
 	clearTable(t, &orm.CommanderStoreupAwardProgress{})
@@ -35,7 +35,7 @@ func TestCollectionGetAward17005SuccessPersistsAndSyncs(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 	client.Buffer.Reset()
-	if _, _, err := CollectionGetAward17005(&buffer, client); err != nil {
+	if _, _, err := ClaimCollectionAward(&buffer, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	var response protobuf.SC_17006
@@ -74,7 +74,7 @@ func TestCollectionGetAward17005SuccessPersistsAndSyncs(t *testing.T) {
 	}
 }
 
-func TestCollectionGetAward17005InsufficientStarsDoesNotPersist(t *testing.T) {
+func TestClaimCollectionAwardInsufficientStarsDoesNotPersist(t *testing.T) {
 	client := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
 	clearTable(t, &orm.CommanderStoreupAwardProgress{})
@@ -90,7 +90,7 @@ func TestCollectionGetAward17005InsufficientStarsDoesNotPersist(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 	client.Buffer.Reset()
-	if _, _, err := CollectionGetAward17005(&buffer, client); err != nil {
+	if _, _, err := ClaimCollectionAward(&buffer, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	var response protobuf.SC_17006
@@ -107,7 +107,7 @@ func TestCollectionGetAward17005InsufficientStarsDoesNotPersist(t *testing.T) {
 	}
 }
 
-func TestCollectionGetAward17005WrongTierRejected(t *testing.T) {
+func TestClaimCollectionAwardWrongTierRejected(t *testing.T) {
 	client := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
 	clearTable(t, &orm.CommanderStoreupAwardProgress{})
@@ -129,7 +129,7 @@ func TestCollectionGetAward17005WrongTierRejected(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 	client.Buffer.Reset()
-	if _, _, err := CollectionGetAward17005(&buffer, client); err != nil {
+	if _, _, err := ClaimCollectionAward(&buffer, client); err != nil {
 		t.Fatalf("handler failed: %v", err)
 	}
 	var response protobuf.SC_17006
@@ -139,7 +139,7 @@ func TestCollectionGetAward17005WrongTierRejected(t *testing.T) {
 	}
 }
 
-func TestCollectionGetAward17005ConcurrentClaimDoesNotDuplicateReward(t *testing.T) {
+func TestClaimCollectionAwardConcurrentClaimDoesNotDuplicateReward(t *testing.T) {
 	client1 := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
 	clearTable(t, &orm.CommanderStoreupAwardProgress{})
@@ -190,7 +190,7 @@ func TestCollectionGetAward17005ConcurrentClaimDoesNotDuplicateReward(t *testing
 		defer wg.Done()
 		<-start
 		client.Buffer.Reset()
-		if _, _, err := CollectionGetAward17005(buf, client); err != nil {
+		if _, _, err := ClaimCollectionAward(buf, client); err != nil {
 			*callErr = err
 			return
 		}
