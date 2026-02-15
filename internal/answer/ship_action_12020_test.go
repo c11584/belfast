@@ -22,7 +22,7 @@ func TestShipAction12020Success(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 
-	_, packetID, err := ShipAction12020(&buffer, client)
+	_, packetID, err := HandleShipActionValidate(&buffer, client)
 	if err != nil {
 		t.Fatalf("ship action failed: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestShipAction12020MissingShip(t *testing.T) {
 		t.Fatalf("marshal payload: %v", err)
 	}
 
-	_, packetID, err := ShipAction12020(&buffer, client)
+	_, packetID, err := HandleShipActionValidate(&buffer, client)
 	if err != nil {
 		t.Fatalf("ship action failed: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestShipAction12020BadPayload(t *testing.T) {
 	client := &connection.Client{Commander: commander}
 	buffer := []byte{0xff}
 
-	_, packetID, err := ShipAction12020(&buffer, client)
+	_, packetID, err := HandleShipActionValidate(&buffer, client)
 	if err == nil {
 		t.Fatalf("expected unmarshal error")
 	}
