@@ -354,6 +354,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(21310, []packets.PacketHandler{answer.IslandSignInGiftClaim})
 	packets.RegisterPacketHandler(21621, []packets.PacketHandler{answer.IslandSetCommanderDressRead})
 	packets.RegisterPacketHandler(21008, []packets.PacketHandler{answer.IslandRefreshInviteCode})
+	packets.RegisterPacketHandler(21034, []packets.PacketHandler{answer.IslandSetTraceTask})
 	packets.RegisterPacketHandler(21032, []packets.PacketHandler{answer.IslandAcceptTask})
 	packets.RegisterPacketHandler(21036, []packets.PacketHandler{answer.IslandUpdateTaskProgress})
 	packets.RegisterPacketHandler(21038, []packets.PacketHandler{answer.IslandSubmitTask})
