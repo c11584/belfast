@@ -72,8 +72,17 @@ func IslandUnlockTech(buffer *[]byte, client *connection.Client) (int, int, erro
 		return client.SendMessage(21521, response)
 	}
 
+	requiredIslandLevel := maxUint32(techTemplate.IslandLevel, 1)
+	islandLevel := uint32(1)
 	snapshot, err := orm.GetIslandSnapshot(client.Commander.CommanderID)
-	if err == nil && snapshot.Level < maxUint32(techTemplate.IslandLevel, 1) {
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return client.SendMessage(21521, response)
+		}
+	} else {
+		islandLevel = maxUint32(snapshot.Level, 1)
+	}
+	if islandLevel < requiredIslandLevel {
 		return client.SendMessage(21521, response)
 	}
 
@@ -142,10 +151,9 @@ func IslandFinishTechImmediate(buffer *[]byte, client *connection.Client) (int, 
 
 	drops := buildIslandTechDrops(formulaTemplate)
 	for _, drop := range drops {
-		if drop.GetType() == consts.DROP_TYPE_ITEM {
-			if err := client.Commander.AddItem(drop.GetId(), drop.GetNumber()); err != nil {
-				return client.SendMessage(21523, response)
-			}
+		ok, err := applyDrop(client, drop.GetType(), drop.GetId(), drop.GetNumber())
+		if err != nil || !ok {
+			return client.SendMessage(21523, response)
 		}
 	}
 

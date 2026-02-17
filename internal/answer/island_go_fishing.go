@@ -37,6 +37,7 @@ type islandFishingRoll struct {
 var (
 	islandFishingStateMu sync.Mutex
 	islandFishingState   = map[string]islandFishingRoll{}
+	islandFishingRNGMu   sync.Mutex
 
 	islandFishingNow = func() time.Time { return time.Now().UTC() }
 	islandFishingRNG = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -72,12 +73,12 @@ func IslandGoFishing(buffer *[]byte, client *connection.Client) (int, int, error
 	if len(fishes) == 0 {
 		return client.SendMessage(21061, response)
 	}
-	selected := fishes[islandFishingRNG.Intn(len(fishes))]
+	selected := fishes[islandFishingIntn(len(fishes))]
 	minWeight := maxUint32(selected.MinWeight, 1)
 	maxWeight := maxUint32(selected.MaxWeight, minWeight)
 	weight := minWeight
 	if maxWeight > minWeight {
-		weight = minWeight + uint32(islandFishingRNG.Intn(int(maxWeight-minWeight+1)))
+		weight = minWeight + uint32(islandFishingIntn(int(maxWeight-minWeight+1)))
 	}
 
 	now := islandFishingNow()
@@ -91,6 +92,13 @@ func IslandGoFishing(buffer *[]byte, client *connection.Client) (int, int, error
 	response.Weight = proto.Uint32(roll.Weight)
 	response.GoldState = proto.Uint32(roll.GoldState)
 	return client.SendMessage(21061, response)
+}
+
+func islandFishingIntn(n int) int {
+	islandFishingRNGMu.Lock()
+	value := islandFishingRNG.Intn(n)
+	islandFishingRNGMu.Unlock()
+	return value
 }
 
 func islandFishingKey(commanderID uint32, islandID uint32, pointID uint32) string {

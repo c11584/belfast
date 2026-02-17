@@ -1,6 +1,8 @@
 package answer
 
 import (
+	"math/rand"
+	"sync"
 	"testing"
 
 	"github.com/ggmolly/belfast/internal/orm"
@@ -113,6 +115,87 @@ func TestIslandUnlockAndFinishTech(t *testing.T) {
 	}
 }
 
+func TestIslandUnlockTechUsesDefaultLevelWhenSnapshotMissing(t *testing.T) {
+	client := setupHandlerCommander(t)
+	clearTable(t, &orm.ConfigEntry{})
+	clearTable(t, &orm.IslandSnapshot{})
+	clearTable(t, &orm.IslandTechnologyState{})
+
+	seedConfigEntry(t, islandTechCategory, "1", `{"id":1,"formula_id":101,"island_level":1,"sys_unlock":[],"tech_repeat":1}`)
+	seedConfigEntry(t, islandTechCategory, "2", `{"id":2,"formula_id":102,"island_level":2,"sys_unlock":[],"tech_repeat":1}`)
+	seedConfigEntry(t, islandFormulaCategory, "101", `{"id":101,"drop_list":[[2,20001,1]]}`)
+	seedConfigEntry(t, islandFormulaCategory, "102", `{"id":102,"drop_list":[[2,20001,1]]}`)
+
+	successPayload := &protobuf.CS_21520{TechId: proto.Uint32(1)}
+	buffer, _ := proto.Marshal(successPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandUnlockTech(&buffer, client); err != nil {
+		t.Fatalf("unlock level-1 tech failed: %v", err)
+	}
+	var successResponse protobuf.SC_21521
+	decodePacketAt(t, client, 0, 21521, &successResponse)
+	if successResponse.GetResult() != 0 {
+		t.Fatalf("expected level-1 unlock success without snapshot")
+	}
+
+	failPayload := &protobuf.CS_21520{TechId: proto.Uint32(2)}
+	buffer, _ = proto.Marshal(failPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandUnlockTech(&buffer, client); err != nil {
+		t.Fatalf("unlock level-2 tech failed: %v", err)
+	}
+	var failResponse protobuf.SC_21521
+	decodePacketAt(t, client, 0, 21521, &failResponse)
+	if failResponse.GetResult() == 0 {
+		t.Fatalf("expected level-2 unlock to fail without snapshot")
+	}
+}
+
+func TestIslandFinishTechImmediateAppliesAllDropTypes(t *testing.T) {
+	client := setupHandlerCommander(t)
+	clearTable(t, &orm.ConfigEntry{})
+	clearTable(t, &orm.IslandSnapshot{})
+	clearTable(t, &orm.IslandTechnologyState{})
+
+	seedConfigEntry(t, islandTechCategory, "5", `{"id":5,"formula_id":105,"island_level":1,"sys_unlock":[],"tech_repeat":1}`)
+	seedConfigEntry(t, islandFormulaCategory, "105", `{"id":105,"drop_list":[[1,1,33],[2,20001,2]]}`)
+	if err := orm.UpsertIslandSnapshot(&orm.IslandSnapshot{CommanderID: client.Commander.CommanderID, Level: 1, StorageLevel: 1}); err != nil {
+		t.Fatalf("seed island snapshot: %v", err)
+	}
+
+	unlockPayload := &protobuf.CS_21520{TechId: proto.Uint32(5)}
+	buffer, _ := proto.Marshal(unlockPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandUnlockTech(&buffer, client); err != nil {
+		t.Fatalf("unlock tech failed: %v", err)
+	}
+
+	goldBefore := client.Commander.GetResourceCount(1)
+	itemBefore := client.Commander.GetItemCount(20001)
+
+	finishPayload := &protobuf.CS_21522{TechId: proto.Uint32(5)}
+	buffer, _ = proto.Marshal(finishPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandFinishTechImmediate(&buffer, client); err != nil {
+		t.Fatalf("finish tech failed: %v", err)
+	}
+
+	var response protobuf.SC_21523
+	decodePacketAt(t, client, 0, 21523, &response)
+	if response.GetResult() != 0 {
+		t.Fatalf("expected finish success")
+	}
+	if len(response.GetDropList()) != 2 {
+		t.Fatalf("expected two configured drops, got %d", len(response.GetDropList()))
+	}
+	if client.Commander.GetResourceCount(1) != goldBefore+33 {
+		t.Fatalf("expected gold increase by 33, got %d", client.Commander.GetResourceCount(1)-goldBefore)
+	}
+	if client.Commander.GetItemCount(20001) != itemBefore+2 {
+		t.Fatalf("expected item increase by 2, got %d", client.Commander.GetItemCount(20001)-itemBefore)
+	}
+}
+
 func TestIslandShopRefreshAndDressRead(t *testing.T) {
 	client := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
@@ -172,5 +255,43 @@ func TestIslandGoFishingSuccess(t *testing.T) {
 	decodePacketAt(t, client, 0, 21061, &response)
 	if response.GetResult() != 0 || response.GetFishId() == 0 || response.GetWeight() == 0 {
 		t.Fatalf("expected fishing success payload, got %+v", response)
+	}
+}
+
+func TestIslandFishingIntnConcurrent(t *testing.T) {
+	islandFishingRNGMu.Lock()
+	previousRNG := islandFishingRNG
+	islandFishingRNG = rand.New(rand.NewSource(1))
+	islandFishingRNGMu.Unlock()
+	t.Cleanup(func() {
+		islandFishingRNGMu.Lock()
+		islandFishingRNG = previousRNG
+		islandFishingRNGMu.Unlock()
+	})
+
+	var wg sync.WaitGroup
+	failures := make(chan struct{}, 1)
+
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 200; j++ {
+				value := islandFishingIntn(7)
+				if value >= 0 && value < 7 {
+					continue
+				}
+				select {
+				case failures <- struct{}{}:
+				default:
+				}
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
+	if len(failures) > 0 {
+		t.Fatalf("expected islandFishingIntn to stay within bounds under concurrency")
 	}
 }
