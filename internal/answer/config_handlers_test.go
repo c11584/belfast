@@ -44,6 +44,13 @@ func clearTable(t *testing.T, model any) {
 }
 
 func tableNameFromModel(model any) (string, error) {
+	type tableNamer interface {
+		TableName() string
+	}
+	if named, ok := model.(tableNamer); ok {
+		return named.TableName(), nil
+	}
+
 	t := reflect.TypeOf(model)
 	if t == nil {
 		return "", fmt.Errorf("model is nil")
