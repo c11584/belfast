@@ -55,6 +55,8 @@ type islandExchangeTemplate struct {
 	TargetCount uint32
 }
 
+var errIslandFishingInsufficientCostRollback = errors.New("island fishing insufficient cost rollback")
+
 func IslandFishingResult(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_21062
 	if err := proto.Unmarshal(*buffer, &payload); err != nil {
@@ -196,8 +198,16 @@ func IslandExchangeItem(buffer *[]byte, client *connection.Client) (int, int, er
 		if !found {
 			return client.SendMessage(21067, response)
 		}
-		costs = append(costs, islandFishingCost{DropType: template.OriginType, ID: template.OriginID, Count: template.OriginCount * makes[i].GetNum()})
-		drops = append(drops, newDropInfo(template.TargetType, template.TargetID, template.TargetCount*makes[i].GetNum()))
+		totalCost, ok := mulUint32Checked(template.OriginCount, makes[i].GetNum())
+		if !ok {
+			return client.SendMessage(21067, response)
+		}
+		totalDrop, ok := mulUint32Checked(template.TargetCount, makes[i].GetNum())
+		if !ok {
+			return client.SendMessage(21067, response)
+		}
+		costs = append(costs, islandFishingCost{DropType: template.OriginType, ID: template.OriginID, Count: totalCost})
+		drops = append(drops, newDropInfo(template.TargetType, template.TargetID, totalDrop))
 	}
 
 	err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
@@ -205,7 +215,7 @@ func IslandExchangeItem(buffer *[]byte, client *connection.Client) (int, int, er
 			if err := consumeIslandFishingCostTx(context.Background(), tx, client, costs[i]); err != nil {
 				if isInsufficientIslandFishingCost(err) {
 					response.Result = proto.Uint32(islandFishingResultLack)
-					return nil
+					return errIslandFishingInsufficientCostRollback
 				}
 				response.Result = proto.Uint32(islandFishingResultPersist)
 				return err
@@ -220,6 +230,9 @@ func IslandExchangeItem(buffer *[]byte, client *connection.Client) (int, int, er
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errIslandFishingInsufficientCostRollback) {
+			return client.SendMessage(21067, response)
+		}
 		return client.SendMessage(21067, response)
 	}
 
@@ -503,4 +516,11 @@ func anyToUint32(value any) (uint32, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func mulUint32Checked(left uint32, right uint32) (uint32, bool) {
+	if right != 0 && left > ^uint32(0)/right {
+		return 0, false
+	}
+	return left * right, true
 }

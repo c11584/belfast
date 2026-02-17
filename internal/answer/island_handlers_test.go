@@ -1,6 +1,7 @@
 package answer
 
 import (
+	"math"
 	"math/rand"
 	"sync"
 	"testing"
@@ -443,6 +444,7 @@ func TestIslandExchangeItemBatchSuccessAndRollback(t *testing.T) {
 
 	seedConfigEntry(t, islandExchangeCategory, "1", `{"id":1,"origin_item":[41,7001,2],"target_item":[41,8001],"target_num":3}`)
 	seedConfigEntry(t, islandExchangeCategory, "2", `{"id":2,"origin_item":[2,20001,1],"target_item":[2,20002],"target_num":2}`)
+	seedConfigEntry(t, islandExchangeCategory, "3", `{"id":3,"origin_item":[41,7001,7],"target_item":[41,8003],"target_num":1}`)
 	execAnswerTestSQLT(t, "INSERT INTO island_inventories (commander_id, item_id, count) VALUES ($1, $2, $3)", int64(client.Commander.CommanderID), int64(7001), int64(10))
 	seedHandlerCommanderItem(t, client, 20001, 5)
 
@@ -485,5 +487,37 @@ func TestIslandExchangeItemBatchSuccessAndRollback(t *testing.T) {
 	postRollbackSource := queryAnswerTestInt64(t, "SELECT count FROM island_inventories WHERE commander_id = $1 AND item_id = $2", int64(client.Commander.CommanderID), int64(7001))
 	if postRollbackSource != 6 {
 		t.Fatalf("expected atomic rollback on insufficient source, got %d", postRollbackSource)
+	}
+
+	partialPayload := &protobuf.CS_21066{Makes: []*protobuf.PB_ISLAND_MAKE{{MakeId: proto.Uint32(1), Num: proto.Uint32(1)}, {MakeId: proto.Uint32(3), Num: proto.Uint32(1)}}}
+	partialBuffer, _ := proto.Marshal(partialPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandExchangeItem(&partialBuffer, client); err != nil {
+		t.Fatalf("exchange partial rollback request failed: %v", err)
+	}
+	var partialResponse protobuf.SC_21067
+	decodePacketAt(t, client, 0, 21067, &partialResponse)
+	if partialResponse.GetResult() != islandFishingResultLack {
+		t.Fatalf("expected insufficient result for partial batch, got %d", partialResponse.GetResult())
+	}
+	postPartialSource := queryAnswerTestInt64(t, "SELECT count FROM island_inventories WHERE commander_id = $1 AND item_id = $2", int64(client.Commander.CommanderID), int64(7001))
+	if postPartialSource != 6 {
+		t.Fatalf("expected atomic rollback when later batch entry fails, got %d", postPartialSource)
+	}
+
+	overflowPayload := &protobuf.CS_21066{Makes: []*protobuf.PB_ISLAND_MAKE{{MakeId: proto.Uint32(1), Num: proto.Uint32(math.MaxUint32)}}}
+	overflowBuffer, _ := proto.Marshal(overflowPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandExchangeItem(&overflowBuffer, client); err != nil {
+		t.Fatalf("exchange overflow request failed: %v", err)
+	}
+	var overflowResponse protobuf.SC_21067
+	decodePacketAt(t, client, 0, 21067, &overflowResponse)
+	if overflowResponse.GetResult() != islandFishingResultInvalid {
+		t.Fatalf("expected invalid result for overflowed batch size, got %d", overflowResponse.GetResult())
+	}
+	postOverflowSource := queryAnswerTestInt64(t, "SELECT count FROM island_inventories WHERE commander_id = $1 AND item_id = $2", int64(client.Commander.CommanderID), int64(7001))
+	if postOverflowSource != 6 {
+		t.Fatalf("expected no mutation for overflowed batch size, got %d", postOverflowSource)
 	}
 }
