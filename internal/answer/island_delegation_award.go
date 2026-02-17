@@ -32,6 +32,13 @@ type islandFormulaConfig struct {
 	PTAward           uint32     `json:"pt_award"`
 }
 
+func mapIslandDelegationLookupError(err error) (uint32, error) {
+	if db.IsNotFound(err) {
+		return islandDelegationResultState, nil
+	}
+	return islandDelegationResultPersistError, err
+}
+
 func IslandGetDelegationAward(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_21505
 	if err := proto.Unmarshal(*buffer, &payload); err != nil {
@@ -61,8 +68,9 @@ func IslandGetDelegationAward(buffer *[]byte, client *connection.Client) (int, i
 	err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 		slot, err := orm.GetIslandDelegationForUpdateTx(context.Background(), tx, client.Commander.CommanderID, buildID, areaID)
 		if err != nil {
-			response.Result = proto.Uint32(islandDelegationResultState)
-			return nil
+			result, lookupErr := mapIslandDelegationLookupError(err)
+			response.Result = proto.Uint32(result)
+			return lookupErr
 		}
 
 		if !slot.RewardReady {

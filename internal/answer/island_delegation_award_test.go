@@ -1,9 +1,11 @@
 package answer
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ggmolly/belfast/internal/consts"
+	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
@@ -164,6 +166,55 @@ func TestIslandGetDelegationAwardValidationFailure(t *testing.T) {
 	}
 	if len(response.GetDropList()) != 0 || response.GetPtAward() != 0 {
 		t.Fatalf("expected empty reward payload on validation failure")
+	}
+}
+
+func TestIslandGetDelegationAwardMissingSlotReturnsState(t *testing.T) {
+	client := setupHandlerCommander(t)
+	clearTable(t, &orm.ConfigEntry{})
+	clearTable(t, &orm.IslandDelegation{})
+
+	seedConfigEntry(t, islandFormulaCategory, "101010", `{"id":101010,"commission_product":[[2010,2]],"pt_award":3}`)
+
+	payload := protobuf.CS_21505{Type: proto.Uint32(1), BuildId: proto.Uint32(10110), AreaId: proto.Uint32(9010)}
+	buffer, err := proto.Marshal(&payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+
+	client.Buffer.Reset()
+	if _, _, err := IslandGetDelegationAward(&buffer, client); err != nil {
+		t.Fatalf("handler failed: %v", err)
+	}
+
+	var response protobuf.SC_21506
+	decodeResponse(t, client, &response)
+	if response.GetResult() != islandDelegationResultState {
+		t.Fatalf("expected missing slot to return state mismatch %d, got %d", islandDelegationResultState, response.GetResult())
+	}
+	if len(response.GetDropList()) != 0 || response.GetPtAward() != 0 || response.GetGetTimes() != 0 {
+		t.Fatalf("expected empty reward payload for missing slot, got %+v", response)
+	}
+}
+
+func TestMapIslandDelegationLookupErrorNotFound(t *testing.T) {
+	result, err := mapIslandDelegationLookupError(db.ErrNotFound)
+	if err != nil {
+		t.Fatalf("expected not-found lookup to be handled as state mismatch, got err=%v", err)
+	}
+	if result != islandDelegationResultState {
+		t.Fatalf("expected state mismatch result %d, got %d", islandDelegationResultState, result)
+	}
+}
+
+func TestMapIslandDelegationLookupErrorPersistsUnexpectedErrors(t *testing.T) {
+	lookupErr := errors.New("query failed")
+	result, err := mapIslandDelegationLookupError(lookupErr)
+	if result != islandDelegationResultPersistError {
+		t.Fatalf("expected persistence result %d, got %d", islandDelegationResultPersistError, result)
+	}
+	if !errors.Is(err, lookupErr) {
+		t.Fatalf("expected original lookup error to propagate, got %v", err)
 	}
 }
 
