@@ -68,14 +68,14 @@ func IslandSubmitUrgencyOrder(buffer *[]byte, client *connection.Client) (int, i
 		}
 
 		for _, cost := range slot.GetCost() {
-			ok, err := orm.ConsumeIslandInventoryTx(context.Background(), tx, client.Commander.CommanderID, cost.GetId(), cost.GetNum())
+			err := orm.ConsumeIslandInventoryTx(context.Background(), tx, client.Commander.CommanderID, cost.GetId(), cost.GetNum())
 			if err != nil {
+				if errors.Is(err, orm.ErrInsufficientIslandInventory) {
+					response.Result = proto.Uint32(islandUrgencySubmitInsufficient)
+					return errIslandUrgencySubmitInsufficientRollback
+				}
 				response.Result = proto.Uint32(islandUrgencySubmitPersist)
 				return err
-			}
-			if !ok {
-				response.Result = proto.Uint32(islandUrgencySubmitInsufficient)
-				return errIslandUrgencySubmitInsufficientRollback
 			}
 		}
 

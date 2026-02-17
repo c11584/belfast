@@ -26,7 +26,7 @@ type islandItemTemplateConfig struct {
 	OrderPrice uint32 `json:"order_price"`
 }
 
-type islandSetConfigEntry struct {
+type islandOpsSetConfigEntry struct {
 	KeyValue []uint32 `json:"key_value"`
 }
 
@@ -79,7 +79,7 @@ func loadIslandSetKeyValue(name string) ([]uint32, bool, error) {
 	if err != nil || entry == nil {
 		return nil, false, nil
 	}
-	var cfg islandSetConfigEntry
+	var cfg islandOpsSetConfigEntry
 	if err := json.Unmarshal(entry.Data, &cfg); err != nil {
 		return nil, false, err
 	}
