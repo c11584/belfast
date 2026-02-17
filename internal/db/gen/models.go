@@ -587,6 +587,13 @@ type GuildShopState struct {
 	NextRefreshTime int64
 }
 
+type IslandAgoraTheme struct {
+	CommanderID int64
+	ThemeSlotID int64
+	Name        string
+	PlacedData  []byte
+}
+
 type IslandDelegation struct {
 	CommanderID   int64
 	BuildID       int64
