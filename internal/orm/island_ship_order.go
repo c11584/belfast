@@ -33,7 +33,7 @@ func UpsertIslandShipOrderSlot(slot *IslandShipOrderSlot) error {
 	return upsertIslandShipOrderSlotWithExecer(context.Background(), db.DefaultStore.Pool, slot)
 }
 
-func UpsertIslandShipOrderSlotTx(ctx context.Context, tx pgx.Tx, slot *IslandShipOrderSlot) error {
+func UpsertIslandRuntimeShipOrderSlotTx(ctx context.Context, tx pgx.Tx, slot *IslandShipOrderSlot) error {
 	return upsertIslandShipOrderSlotWithExecer(ctx, tx, slot)
 }
 
@@ -59,7 +59,7 @@ DO UPDATE SET
 	return err
 }
 
-func GetIslandShipOrderSlotForUpdateTx(ctx context.Context, tx pgx.Tx, commanderID uint32, shipSlotID uint32) (*IslandShipOrderSlot, error) {
+func GetIslandRuntimeShipOrderSlotForUpdateTx(ctx context.Context, tx pgx.Tx, commanderID uint32, shipSlotID uint32) (*IslandShipOrderSlot, error) {
 	var commanderIDRaw int64
 	var shipSlotIDRaw int64
 	var stateRaw int64

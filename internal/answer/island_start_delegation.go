@@ -92,7 +92,7 @@ func IslandStartDelegation(buffer *[]byte, client *connection.Client) (int, int,
 			}
 			itemID := formula.CommissionCost[i][0]
 			itemCount := formula.CommissionCost[i][1] * payload.GetNum()
-			if err := orm.ConsumeIslandInventoryTx(context.Background(), tx, client.Commander.CommanderID, itemID, itemCount); err != nil {
+			if err := orm.ConsumeIslandInventoryCheckedTx(context.Background(), tx, client.Commander.CommanderID, itemID, itemCount); err != nil {
 				if db.IsNotFound(err) {
 					response.Result = proto.Uint32(4)
 					return err

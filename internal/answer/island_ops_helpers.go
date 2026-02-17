@@ -13,7 +13,7 @@ import (
 const (
 	islandSpeedupTicketCategory = "ShareCfg/island_speedup_ticket.json"
 	islandItemTemplateCategory  = "ShareCfg/island_item_data_template.json"
-	islandSetCategory           = "ShareCfg/island_set.json"
+	islandOpsSetCategory        = "ShareCfg/island_set.json"
 )
 
 type islandSpeedupTicketConfig struct {
@@ -61,9 +61,9 @@ func loadIslandItemOrderPrice(itemID uint32) (uint32, bool, error) {
 }
 
 func loadIslandSetKeyValue(name string) ([]uint32, bool, error) {
-	entry, err := orm.GetConfigEntry(islandSetCategory, name)
+	entry, err := orm.GetConfigEntry(islandOpsSetCategory, name)
 	if err != nil {
-		entries, listErr := orm.ListConfigEntries(islandSetCategory)
+		entries, listErr := orm.ListConfigEntries(islandOpsSetCategory)
 		if listErr != nil {
 			return nil, false, listErr
 		}

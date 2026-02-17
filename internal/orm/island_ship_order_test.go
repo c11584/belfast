@@ -35,7 +35,7 @@ func TestIslandShipOrderSlotRoundTrip(t *testing.T) {
 	}
 
 	err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
-		reloaded, err := GetIslandShipOrderSlotForUpdateTx(context.Background(), tx, commanderID, 100)
+		reloaded, err := GetIslandRuntimeShipOrderSlotForUpdateTx(context.Background(), tx, commanderID, 100)
 		if err != nil {
 			return err
 		}

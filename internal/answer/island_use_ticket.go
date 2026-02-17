@@ -77,7 +77,7 @@ func IslandUseTicket(buffer *[]byte, client *connection.Client) (int, int, error
 			return err
 		}
 		if ticketType == islandTicketTypeShipOrder {
-			slot, err := orm.GetIslandShipOrderSlotForUpdateTx(context.Background(), tx, client.Commander.CommanderID, targetID)
+			slot, err := orm.GetIslandRuntimeShipOrderSlotForUpdateTx(context.Background(), tx, client.Commander.CommanderID, targetID)
 			if err == nil {
 				if slot.EndTime > now {
 					if totalSpeed >= slot.EndTime-now {
@@ -86,7 +86,7 @@ func IslandUseTicket(buffer *[]byte, client *connection.Client) (int, int, error
 						slot.EndTime -= totalSpeed
 					}
 				}
-				if err := orm.UpsertIslandShipOrderSlotTx(context.Background(), tx, slot); err != nil {
+				if err := orm.UpsertIslandRuntimeShipOrderSlotTx(context.Background(), tx, slot); err != nil {
 					response.Result = proto.Uint32(5)
 					return err
 				}

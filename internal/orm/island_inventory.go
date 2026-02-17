@@ -31,7 +31,7 @@ DO UPDATE SET count = island_inventories.count + EXCLUDED.count
 	return err
 }
 
-func ConsumeIslandInventoryTx(ctx context.Context, tx pgx.Tx, commanderID uint32, itemID uint32, count uint32) error {
+func ConsumeIslandInventoryCheckedTx(ctx context.Context, tx pgx.Tx, commanderID uint32, itemID uint32, count uint32) error {
 	if count == 0 {
 		return nil
 	}

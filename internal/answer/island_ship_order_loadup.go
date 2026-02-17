@@ -40,7 +40,7 @@ func IslandShipOrderLoadUp(buffer *[]byte, client *connection.Client) (int, int,
 	}
 
 	err = db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
-		slot, err := orm.GetIslandShipOrderSlotForUpdateTx(context.Background(), tx, client.Commander.CommanderID, payload.GetShipSlotId())
+		slot, err := orm.GetIslandRuntimeShipOrderSlotForUpdateTx(context.Background(), tx, client.Commander.CommanderID, payload.GetShipSlotId())
 		if err != nil {
 			if db.IsNotFound(err) {
 				response.Result = proto.Uint32(2)
@@ -64,7 +64,7 @@ func IslandShipOrderLoadUp(buffer *[]byte, client *connection.Client) (int, int,
 			}
 
 			cost := slot.CostList[matchedIndex]
-			if err := orm.ConsumeIslandInventoryTx(context.Background(), tx, client.Commander.CommanderID, cost.ID, cost.Num); err != nil {
+			if err := orm.ConsumeIslandInventoryCheckedTx(context.Background(), tx, client.Commander.CommanderID, cost.ID, cost.Num); err != nil {
 				if db.IsNotFound(err) {
 					response.Result = proto.Uint32(3)
 					return nil
@@ -115,7 +115,7 @@ func IslandShipOrderLoadUp(buffer *[]byte, client *connection.Client) (int, int,
 			slot.GetTime = nowUnix()
 			response.GetTime = proto.Uint32(slot.GetTime)
 		}
-		if err := orm.UpsertIslandShipOrderSlotTx(context.Background(), tx, slot); err != nil {
+		if err := orm.UpsertIslandRuntimeShipOrderSlotTx(context.Background(), tx, slot); err != nil {
 			response.Result = proto.Uint32(5)
 			return err
 		}
