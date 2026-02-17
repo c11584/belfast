@@ -47,15 +47,16 @@ func upsertIslandShipOrderSlotWithExecer(ctx context.Context, execer islandShipO
 		return err
 	}
 	_, err = execer.Exec(ctx, `
-INSERT INTO island_ship_order_slots (commander_id, ship_slot_id, state, get_time, end_time, cost_list)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (commander_id, ship_slot_id)
+INSERT INTO island_ship_order_slots (commander_id, slot_id, ship_slot_id, state, get_time, end_time, cost_list)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (commander_id, slot_id)
 DO UPDATE SET
+	ship_slot_id = EXCLUDED.ship_slot_id,
 	state = EXCLUDED.state,
 	get_time = EXCLUDED.get_time,
 	end_time = EXCLUDED.end_time,
 	cost_list = EXCLUDED.cost_list
-`, int64(slot.CommanderID), int64(slot.ShipSlotID), int64(slot.State), int64(slot.GetTime), int64(slot.EndTime), costBytes)
+`, int64(slot.CommanderID), int64(slot.ShipSlotID), int64(slot.ShipSlotID), int64(slot.State), int64(slot.GetTime), int64(slot.EndTime), costBytes)
 	return err
 }
 
@@ -67,9 +68,9 @@ func GetIslandRuntimeShipOrderSlotForUpdateTx(ctx context.Context, tx pgx.Tx, co
 	var endTimeRaw int64
 	var costRaw []byte
 	err := tx.QueryRow(ctx, `
-SELECT commander_id, ship_slot_id, state, get_time, end_time, cost_list
+SELECT commander_id, COALESCE(ship_slot_id, slot_id), state, get_time, end_time, cost_list
 FROM island_ship_order_slots
-WHERE commander_id = $1 AND ship_slot_id = $2
+WHERE commander_id = $1 AND COALESCE(ship_slot_id, slot_id) = $2
 FOR UPDATE
 `, int64(commanderID), int64(shipSlotID)).Scan(&commanderIDRaw, &shipSlotIDRaw, &stateRaw, &getTimeRaw, &endTimeRaw, &costRaw)
 	err = db.MapNotFound(err)

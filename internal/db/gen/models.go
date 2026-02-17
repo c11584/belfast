@@ -687,7 +687,7 @@ type IslandShipOrderSlot struct {
 	CommanderID int64
 	SlotID      int64
 	SlotData    []byte
-	ShipSlotID  int64
+	ShipSlotID  pgtype.Int8
 	State       int64
 	GetTime     int64
 	EndTime     int64

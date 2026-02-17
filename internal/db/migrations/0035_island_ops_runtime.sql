@@ -74,8 +74,5 @@ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE island_ship_order_slots
-  ALTER COLUMN ship_slot_id SET NOT NULL;
-
 CREATE UNIQUE INDEX IF NOT EXISTS island_ship_order_slots_commander_ship_slot_idx
   ON island_ship_order_slots(commander_id, ship_slot_id);
