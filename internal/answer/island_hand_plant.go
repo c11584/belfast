@@ -23,9 +23,6 @@ import (
 const (
 	islandProductionSlotCategory   = "ShareCfg/island_production_slot.json"
 	islandProductionSlotCategoryLC = "sharecfgdata/island_production_slot.json"
-	islandFormulaCategoryLC        = "sharecfgdata/island_formula.json"
-	islandSetCategory              = "ShareCfg/island_set.json"
-	islandSetCategoryLC            = "sharecfgdata/island_set.json"
 
 	islandHandPlantSlotType = uint32(1)
 

@@ -3,7 +3,6 @@ package answer
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/ggmolly/belfast/internal/orm"
@@ -106,12 +105,4 @@ func speedTicketConsumeFromProto(tickets []*protobuf.PB_SPEEDUP_TICKET) ([]orm.I
 		})
 	}
 	return out, true
-}
-
-func parseUint32Key(key string) (uint32, bool) {
-	v, err := strconv.ParseUint(key, 10, 32)
-	if err != nil {
-		return 0, false
-	}
-	return uint32(v), true
 }

@@ -37,7 +37,7 @@ func IslandReplaceOrder(buffer *[]byte, client *connection.Client) (int, int, er
 		response.Result = proto.Uint32(islandOrderReplacePersist)
 		return client.SendMessage(21404, response)
 	}
-	refreshSeconds, _, err := loadIslandSetInt("order_complete_refresh_time")
+	refreshSeconds, _, err := loadIslandSetIntConfig("order_complete_refresh_time")
 	if err != nil {
 		response.Result = proto.Uint32(islandOrderReplacePersist)
 		return client.SendMessage(21404, response)

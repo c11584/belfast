@@ -42,7 +42,7 @@ func IslandSubmitUrgencyOrder(buffer *[]byte, client *connection.Client) (int, i
 	}
 
 	now := uint32(time.Now().Unix())
-	orderFavorGain, _, err := loadIslandSetInt("order_favor")
+	orderFavorGain, _, err := loadIslandSetIntConfig("order_favor")
 	if err != nil {
 		response.Result = proto.Uint32(islandUrgencySubmitPersist)
 		return client.SendMessage(21406, response)

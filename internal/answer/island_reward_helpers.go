@@ -129,7 +129,7 @@ func loadIslandOrderPriceConfig(orderLv uint32) (*islandOrderPriceConfig, bool, 
 	return nil, false, nil
 }
 
-func loadIslandSetInt(key string) (uint32, bool, error) {
+func loadIslandSetIntConfig(key string) (uint32, bool, error) {
 	entry, err := orm.GetConfigEntry(islandRewardSetCategory, key)
 	if err == nil {
 		var parsed islandSetConfig
@@ -184,7 +184,7 @@ func loadIslandRandomDialogIDs() ([]uint32, error) {
 }
 
 func loadIslandSeasonConfig() (*islandSeasonConfig, bool, error) {
-	seasonID, found, err := loadIslandSetInt("season_now")
+	seasonID, found, err := loadIslandSetIntConfig("season_now")
 	if err != nil {
 		return nil, false, err
 	}
