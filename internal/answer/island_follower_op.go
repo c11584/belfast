@@ -96,7 +96,12 @@ func IslandFollowerOp(buffer *[]byte, client *connection.Client) (int, int, erro
 				response.Result = proto.Uint32(islandFollowerResultMaxReached)
 				return nil
 			}
-			orderIdx := uint32(len(followers))
+			var orderIdx uint32
+			for i := range followers {
+				if followers[i].OrderIdx >= orderIdx {
+					orderIdx = followers[i].OrderIdx + 1
+				}
+			}
 			if err := orm.AddIslandFollowerTx(context.Background(), tx, client.Commander.CommanderID, shipID, orderIdx); err != nil {
 				return err
 			}

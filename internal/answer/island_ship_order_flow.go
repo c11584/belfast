@@ -82,6 +82,7 @@ func IslandShipOrderOperate(buffer *[]byte, client *connection.Client) (int, int
 		if slot.LoadTime == 0 {
 			slot.LoadTime = now
 		}
+		slot.State = payload.GetType()
 		if err := orm.UpsertIslandShipOrderSlotTx(context.Background(), tx, slot); err != nil {
 			return err
 		}
@@ -126,6 +127,9 @@ func IslandShipOrderSubmit(buffer *[]byte, client *connection.Client) (int, int,
 		slot, err := orm.LoadIslandShipOrderSlotTx(context.Background(), tx, client.Commander.CommanderID, payload.GetShipSlotId())
 		if err != nil {
 			return err
+		}
+		if slot.State == 0 {
+			return nil
 		}
 
 		slot.FinishNum++
@@ -202,6 +206,7 @@ func HandleIslandShipOrderRefresh(buffer *[]byte, client *connection.Client) (in
 				return err
 			}
 			state.AppointList = appoints
+			state.RefreshAt = now + refreshCD
 			if err := orm.SaveIslandShipOrderStateTx(context.Background(), tx, state); err != nil {
 				return err
 			}
