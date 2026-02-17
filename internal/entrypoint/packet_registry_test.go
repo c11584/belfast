@@ -30,3 +30,11 @@ func TestRegisterPacketsIncludesIslandDelegationAwardClaim(t *testing.T) {
 		t.Fatalf("expected handler for CS_21505 to be registered")
 	}
 }
+
+func TestRegisterPacketsIncludesIslandAgoraThemeDelete(t *testing.T) {
+	packets.PacketDecisionFn = make(map[int][]packets.PacketHandler)
+	registerPackets()
+	if _, ok := packets.PacketDecisionFn[21319]; !ok {
+		t.Fatalf("expected handler for CS_21319 to be registered")
+	}
+}
