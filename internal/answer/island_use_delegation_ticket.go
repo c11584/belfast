@@ -79,7 +79,7 @@ func IslandUseDelegationTicket(buffer *[]byte, client *connection.Client) (int, 
 		if err := orm.ConsumeIslandSpeedupTicketsTx(context.Background(), tx, client.Commander.CommanderID, consumeReqs); err != nil {
 			if db.IsNotFound(err) {
 				response.Result = proto.Uint32(2)
-				return nil
+				return err
 			}
 			response.Result = proto.Uint32(1)
 			return err

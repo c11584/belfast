@@ -95,7 +95,7 @@ func IslandStartDelegation(buffer *[]byte, client *connection.Client) (int, int,
 			if err := orm.ConsumeIslandInventoryTx(context.Background(), tx, client.Commander.CommanderID, itemID, itemCount); err != nil {
 				if db.IsNotFound(err) {
 					response.Result = proto.Uint32(4)
-					return nil
+					return err
 				}
 				response.Result = proto.Uint32(5)
 				return err
