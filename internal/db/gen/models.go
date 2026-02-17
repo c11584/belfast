@@ -594,6 +594,16 @@ type IslandAgoraTheme struct {
 	PlacedData  []byte
 }
 
+type IslandCommanderDress struct {
+	CommanderID int64
+	DressID     int64
+	State       int64
+	Color       int64
+	ColorList   []byte
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type IslandDelegation struct {
 	CommanderID   int64
 	BuildID       int64
@@ -620,6 +630,50 @@ type IslandSeason struct {
 	Pt          int64
 }
 
+type IslandShopState struct {
+	CommanderID  int64
+	ShopID       int64
+	ExistTime    int64
+	RefreshTime  int64
+	RefreshCount int64
+	Goods        []byte
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type IslandSigninState struct {
+	CommanderID        int64
+	DayStartUnix       int64
+	SignedIn           bool
+	ExternalClaimCount int64
+	ClaimedSlots       []byte
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+}
+
+type IslandSnapshot struct {
+	CommanderID    int64
+	Name           string
+	Level          int64
+	Exp            int64
+	StorageLevel   int64
+	Prosperity     int64
+	AgoraLevel     int64
+	MapID          int64
+	PositionX      float32
+	PositionY      float32
+	PositionZ      float32
+	RotationX      float32
+	RotationY      float32
+	RotationZ      float32
+	OpenFlag       int64
+	InviteCode     string
+	DailyTimestamp int64
+	FollowShips    []byte
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+}
+
 type IslandTaskProgress struct {
 	CommanderID        int64
 	WeekStartUnix      int64
@@ -633,6 +687,15 @@ type IslandTaskProgress struct {
 	RandomTaskWindows  []byte
 	CreatedAt          pgtype.Timestamptz
 	UpdatedAt          pgtype.Timestamptz
+}
+
+type IslandTechnologyState struct {
+	CommanderID     int64
+	UnlockedTechIds []byte
+	AbilityIds      []byte
+	FinishCounts    []byte
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
 }
 
 type Item struct {
