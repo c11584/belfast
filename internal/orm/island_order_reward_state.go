@@ -201,7 +201,7 @@ ORDER BY slot_id ASC
 	return slots, nil
 }
 
-func UpsertIslandShipOrderSlotTx(ctx context.Context, tx pgx.Tx, commanderID uint32, slot *protobuf.PB_ISLAND_ORDER_SHIP_SLOT) error {
+func UpsertIslandShipOrderSlotDataTx(ctx context.Context, tx pgx.Tx, commanderID uint32, slot *protobuf.PB_ISLAND_ORDER_SHIP_SLOT) error {
 	data, err := proto.Marshal(slot)
 	if err != nil {
 		return err
@@ -333,31 +333,6 @@ ORDER BY appoint_id ASC
 		return nil, err
 	}
 	return appoints, nil
-}
-
-func ConsumeIslandInventoryTx(ctx context.Context, tx pgx.Tx, commanderID uint32, itemID uint32, count uint32) (bool, error) {
-	if count == 0 {
-		return true, nil
-	}
-	res, err := tx.Exec(ctx, `
-UPDATE island_inventories
-SET count = count - $3
-WHERE commander_id = $1 AND item_id = $2 AND count >= $3
-`, int64(commanderID), int64(itemID), int64(count))
-	if err != nil {
-		return false, err
-	}
-	if res.RowsAffected() == 0 {
-		return false, nil
-	}
-	_, err = tx.Exec(ctx, `
-DELETE FROM island_inventories
-WHERE commander_id = $1 AND item_id = $2 AND count = 0
-`, int64(commanderID), int64(itemID))
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 func AddIslandSeasonRewardClaimTx(ctx context.Context, tx pgx.Tx, commanderID uint32, targetPT uint32) (bool, error) {

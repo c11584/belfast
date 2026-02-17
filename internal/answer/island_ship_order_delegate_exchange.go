@@ -58,7 +58,7 @@ func IslandExchangeShipOrderDelegate(buffer *[]byte, client *connection.Client) 
 		slot.Cost = convertAppointCostToShipLoad(appoint.GetCost())
 		slot.Reward = cloneIslandItems(appoint.GetReward())
 
-		if err := orm.UpsertIslandShipOrderSlotTx(context.Background(), tx, client.Commander.CommanderID, slot); err != nil {
+		if err := orm.UpsertIslandShipOrderSlotDataTx(context.Background(), tx, client.Commander.CommanderID, slot); err != nil {
 			response.Result = proto.Uint32(islandShipOrderExchangePersist)
 			return err
 		}
