@@ -327,6 +327,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(20106, []packets.PacketHandler{answer.SubmitWeeklyTask})
 	packets.RegisterPacketHandler(20108, []packets.PacketHandler{answer.SubmitWeeklyTaskBatch})
 	packets.RegisterPacketHandler(20110, []packets.PacketHandler{answer.ClaimWeeklyTaskProgressReward})
+	packets.RegisterPacketHandler(21030, []packets.PacketHandler{answer.IslandRandomTaskRefresh})
 	// Dorm / Backyard (190xx)
 	packets.RegisterPacketHandler(19002, []packets.PacketHandler{answer.AddDormShip})
 	packets.RegisterPacketHandler(19004, []packets.PacketHandler{answer.ExitDormShip})
