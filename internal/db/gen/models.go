@@ -587,6 +587,21 @@ type GuildShopState struct {
 	NextRefreshTime int64
 }
 
+type IslandTaskProgress struct {
+	CommanderID        int64
+	WeekStartUnix      int64
+	LastRefreshDayUnix int64
+	WeekDailyTaskNum   int64
+	TraceTaskID        int64
+	TraceDailyTaskID   int64
+	ActiveTasks        []byte
+	FinishedTaskIds    []byte
+	FutureTaskWindows  []byte
+	RandomTaskWindows  []byte
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+}
+
 type Item struct {
 	ID          int64
 	Name        string
