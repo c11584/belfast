@@ -39,6 +39,32 @@ func TestRegisterPacketsIncludesIslandAgoraThemeDelete(t *testing.T) {
 	}
 }
 
+func TestRegisterPacketsIncludesIslandShipBreakout(t *testing.T) {
+	packets.PacketDecisionFn = make(map[int][]packets.PacketHandler)
+	registerPackets()
+	if _, ok := packets.PacketDecisionFn[21601]; !ok {
+		t.Fatalf("expected handler for CS_21601 to be registered")
+	}
+}
+
+func TestRegisterPacketsIncludesIslandFollowerOp(t *testing.T) {
+	packets.PacketDecisionFn = make(map[int][]packets.PacketHandler)
+	registerPackets()
+	if _, ok := packets.PacketDecisionFn[21630]; !ok {
+		t.Fatalf("expected handler for CS_21630 to be registered")
+	}
+}
+
+func TestRegisterPacketsIncludesIslandShipOrderFlow(t *testing.T) {
+	packets.PacketDecisionFn = make(map[int][]packets.PacketHandler)
+	registerPackets()
+	for _, packetID := range []int{21408, 21416, 21429} {
+		if _, ok := packets.PacketDecisionFn[packetID]; !ok {
+			t.Fatalf("expected handler for CS_%d to be registered", packetID)
+		}
+	}
+}
+
 func TestRegisterPacketsIncludesIslandOrderRewardsCluster(t *testing.T) {
 	packets.PacketDecisionFn = make(map[int][]packets.PacketHandler)
 	registerPackets()

@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	islandOrderFavorCategory  = "ShareCfg/island_order_favor.json"
-	islandOrderPriceCategory  = "ShareCfg/island_order_price.json"
-	islandOrderRandomCategory = "ShareCfg/island_order_publish_random.json"
-	islandSetCategory         = "ShareCfg/island_set.json"
-	islandSeasonCategory      = "ShareCfg/island_season.json"
-	islandProsperityCategory  = "ShareCfg/island_prosperity.json"
+	islandOrderFavorCategory   = "ShareCfg/island_order_favor.json"
+	islandOrderPriceCategory   = "ShareCfg/island_order_price.json"
+	islandOrderRandomCategory  = "ShareCfg/island_order_publish_random.json"
+	islandRewardSetCategory    = "ShareCfg/island_set.json"
+	islandRewardSeasonCategory = "ShareCfg/island_season.json"
+	islandProsperityCategory   = "ShareCfg/island_prosperity.json"
 )
 
 type islandOrderFavorConfig struct {
@@ -130,7 +130,7 @@ func loadIslandOrderPriceConfig(orderLv uint32) (*islandOrderPriceConfig, bool, 
 }
 
 func loadIslandSetInt(key string) (uint32, bool, error) {
-	entry, err := orm.GetConfigEntry(islandSetCategory, key)
+	entry, err := orm.GetConfigEntry(islandRewardSetCategory, key)
 	if err == nil {
 		var parsed islandSetConfig
 		if err := json.Unmarshal(entry.Data, &parsed); err != nil {
@@ -139,7 +139,7 @@ func loadIslandSetInt(key string) (uint32, bool, error) {
 		return parsed.KeyValueInt, true, nil
 	}
 
-	entries, err := orm.ListConfigEntries(islandSetCategory)
+	entries, err := orm.ListConfigEntries(islandRewardSetCategory)
 	if err != nil {
 		return 0, false, err
 	}
@@ -193,7 +193,7 @@ func loadIslandSeasonConfig() (*islandSeasonConfig, bool, error) {
 	}
 
 	key := fmt.Sprintf("%d", seasonID)
-	if entry, err := orm.GetConfigEntry(islandSeasonCategory, key); err == nil {
+	if entry, err := orm.GetConfigEntry(islandRewardSeasonCategory, key); err == nil {
 		var single islandSeasonConfig
 		if err := json.Unmarshal(entry.Data, &single); err == nil {
 			if single.ID == 0 {
@@ -203,7 +203,7 @@ func loadIslandSeasonConfig() (*islandSeasonConfig, bool, error) {
 		}
 	}
 
-	entries, err := orm.ListConfigEntries(islandSeasonCategory)
+	entries, err := orm.ListConfigEntries(islandRewardSeasonCategory)
 	if err != nil {
 		return nil, false, err
 	}

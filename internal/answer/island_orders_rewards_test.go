@@ -241,7 +241,7 @@ func TestIslandExchangeShipOrderDelegate(t *testing.T) {
 
 	err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 		slot := &protobuf.PB_ISLAND_ORDER_SHIP_SLOT{Id: proto.Uint32(301), State: proto.Uint32(1), LoadTime: proto.Uint32(0), GetTime: proto.Uint32(0), Cost: []*protobuf.PB_ISLAND_ORDER_SHIP_LOAD{{Id: proto.Uint32(10), Num: proto.Uint32(1), State: proto.Uint32(1)}}, Reward: []*protobuf.PB_ISLAND_ITEM{{Id: proto.Uint32(20), Num: proto.Uint32(1)}}, FinishNum: proto.Uint32(0), AutoTime: proto.Uint32(0)}
-		if err := orm.UpsertIslandShipOrderSlotTx(context.Background(), tx, client.Commander.CommanderID, slot); err != nil {
+		if err := orm.UpsertIslandShipOrderSlotDataTx(context.Background(), tx, client.Commander.CommanderID, slot); err != nil {
 			return err
 		}
 		appoint := &protobuf.PB_SHIP_ORDER_APPOINT{Id: proto.Uint32(9), ViewTime: proto.Uint32(100), Cost: []*protobuf.PB_ISLAND_ITEM{{Id: proto.Uint32(11), Num: proto.Uint32(2)}}, Reward: []*protobuf.PB_ISLAND_ITEM{{Id: proto.Uint32(22), Num: proto.Uint32(3)}}}
