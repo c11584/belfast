@@ -51,3 +51,31 @@ CREATE TABLE IF NOT EXISTS island_ship_order_slots (
   CHECK (get_time >= 0),
   CHECK (end_time >= 0)
 );
+
+ALTER TABLE island_ship_order_slots
+  ADD COLUMN IF NOT EXISTS ship_slot_id bigint,
+  ADD COLUMN IF NOT EXISTS state bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS get_time bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS end_time bigint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cost_list jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'island_ship_order_slots'
+      AND column_name = 'slot_id'
+  ) THEN
+    UPDATE island_ship_order_slots
+    SET ship_slot_id = slot_id
+    WHERE ship_slot_id IS NULL;
+  END IF;
+END $$;
+
+ALTER TABLE island_ship_order_slots
+  ALTER COLUMN ship_slot_id SET NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS island_ship_order_slots_commander_ship_slot_idx
+  ON island_ship_order_slots(commander_id, ship_slot_id);

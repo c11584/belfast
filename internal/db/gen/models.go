@@ -687,6 +687,11 @@ type IslandShipOrderSlot struct {
 	CommanderID int64
 	SlotID      int64
 	SlotData    []byte
+	ShipSlotID  int64
+	State       int64
+	GetTime     int64
+	EndTime     int64
+	CostList    []byte
 }
 
 type IslandSpeedupTarget struct {
