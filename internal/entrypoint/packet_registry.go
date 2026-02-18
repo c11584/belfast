@@ -72,6 +72,13 @@ func registerPackets() {
 		answer.SendPlayerShipCount,
 	})
 	packets.RegisterPacketHandler(25026, []packets.PacketHandler{answer.GetCommanderHome})
+	packets.RegisterPacketHandler(25010, []packets.PacketHandler{answer.FetchCommanderCandidateTalents})
+	packets.RegisterPacketHandler(25012, []packets.PacketHandler{answer.LearnCommanderTalent})
+	packets.RegisterPacketHandler(25014, []packets.PacketHandler{answer.ResetCommanderTalents})
+	packets.RegisterPacketHandler(25016, []packets.PacketHandler{answer.SetCommanderLockState})
+	packets.RegisterPacketHandler(25020, []packets.PacketHandler{answer.RenameCommander})
+	packets.RegisterPacketHandler(25022, []packets.PacketHandler{answer.SetCommanderPrefabFleet})
+	packets.RegisterPacketHandler(25024, []packets.PacketHandler{answer.RenameCommanderPrefabFleet})
 	packets.RegisterPacketHandler(34501, []packets.PacketHandler{answer.WorldBossInfo})
 	packets.RegisterPacketHandler(63317, []packets.PacketHandler{answer.MetaCharacterTacticsInfoRequestCommandResponse})
 	packets.RegisterPacketHandler(34001, []packets.PacketHandler{answer.GetMetaShipsPointsResponse})
