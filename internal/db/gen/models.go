@@ -338,6 +338,32 @@ type CommanderMiscItem struct {
 	Data        int64
 }
 
+type CommanderPacketState struct {
+	OwnerCommanderID  int64
+	CommanderID       int64
+	Level             int64
+	Name              string
+	IsLocked          bool
+	UsedPt            int64
+	AbilityIds        []byte
+	AbilityOriginIds  []byte
+	PendingAbilityIds []byte
+	AbilityResetAt    pgtype.Timestamptz
+	RenameCooldownAt  pgtype.Timestamptz
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+}
+
+type CommanderPrefabFleet struct {
+	OwnerCommanderID int64
+	PrefabID         int64
+	Name             string
+	RenameCooldownAt pgtype.Timestamptz
+	CommanderSlots   []byte
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+}
+
 type CommanderShipSkill struct {
 	CommanderID int64
 	ShipID      int64
