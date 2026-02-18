@@ -165,6 +165,24 @@ type Build struct {
 	FinishesAt pgtype.Timestamptz
 }
 
+type ChallengeModeState struct {
+	CommanderID         int64
+	ActivityID          int64
+	Mode                int64
+	SeasonID            int64
+	Level               int64
+	CurrentScore        int64
+	Issl                int64
+	RegularGroupID      int64
+	SubmarineGroupID    int64
+	RegularShipIds      []byte
+	SubmarineShipIds    []byte
+	RegularCommanders   []byte
+	SubmarineCommanders []byte
+	CreatedAt           pgtype.Timestamptz
+	UpdatedAt           pgtype.Timestamptz
+}
+
 type ChapterDrop struct {
 	CommanderID int64
 	ChapterID   int64
@@ -639,6 +657,16 @@ type ExerciseFleet struct {
 	MainShipIds     []byte
 }
 
+type FeastState struct {
+	CommanderID  int64
+	ActID        int64
+	RefreshTime  int64
+	PartyRoles   []byte
+	SpecialRoles []byte
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
 type Fleet struct {
 	ID             int64
 	GameID         int64
@@ -646,6 +674,24 @@ type Fleet struct {
 	Name           string
 	ShipList       []byte
 	MeowfficerList []byte
+}
+
+type GameRoomScore struct {
+	CommanderID int64
+	RoomID      int64
+	MaxScore    int64
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type GameRoomState struct {
+	CommanderID       int64
+	WeekStartUnix     int64
+	WeeklyClaimed     bool
+	PayCoinCount      int64
+	FirstEnterClaimed bool
+	MonthKey          int64
+	MonthlyTicket     int64
+	UpdatedAt         pgtype.Timestamptz
 }
 
 type GlobalSkinRestriction struct {
@@ -1183,6 +1229,16 @@ type JuustagramTemplate struct {
 type Like struct {
 	GroupID int64
 	LikerID int64
+}
+
+type LimitChallengeState struct {
+	CommanderID int64
+	MonthBucket int64
+	BestTimes   []byte
+	Awarded     []byte
+	PassIds     []byte
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type LocalAccount struct {
