@@ -648,6 +648,16 @@ type ExerciseFleet struct {
 	MainShipIds     []byte
 }
 
+type FeastState struct {
+	CommanderID  int64
+	ActID        int64
+	RefreshTime  int64
+	PartyRoles   []byte
+	SpecialRoles []byte
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
 type Fleet struct {
 	ID             int64
 	GameID         int64
