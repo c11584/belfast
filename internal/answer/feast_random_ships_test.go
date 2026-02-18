@@ -92,3 +92,68 @@ func TestFeastRandomShipsValidationFailureNoMutation(t *testing.T) {
 		t.Fatalf("expected state unchanged after failure, got %+v", state)
 	}
 }
+
+func TestFeastRandomShipsCooldownBlocksReroll(t *testing.T) {
+	commanderID := uint32(9014)
+	actID := uint32(60022)
+	cleanupFeastData(t, commanderID, actID)
+	seedFeastActivityTemplate(t, actID, time.Now().Add(24*time.Hour), "[5001,5002]")
+	client := &connection.Client{Commander: setupMiniGameCommander(t, commanderID)}
+	defer cleanupFeastData(t, commanderID, actID)
+
+	if err := orm.SaveFeastState(&orm.FeastState{
+		CommanderID: commanderID,
+		ActID:       actID,
+		RefreshTime: uint32(time.Now().Add(30 * time.Minute).Unix()),
+		PartyRoles:  []orm.FeastPartyRole{{Tid: 5001, Bubble: 0, SpeechBubble: 0}},
+	}); err != nil {
+		t.Fatalf("seed feast state: %v", err)
+	}
+
+	payload := &protobuf.CS_26158{ActId: proto.Uint32(actID), ShipGroupId: []uint32{5002}}
+	buf, err := proto.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if _, _, err := answer.FeastRandomShips(&buf, client); err != nil {
+		t.Fatalf("FeastRandomShips failed: %v", err)
+	}
+
+	response := &protobuf.SC_26159{}
+	decodeTestPacket(t, client, 26159, response)
+	if response.GetRet() == 0 {
+		t.Fatalf("expected cooldown failure")
+	}
+
+	state, err := orm.GetFeastState(commanderID, actID)
+	if err != nil {
+		t.Fatalf("failed to load feast state: %v", err)
+	}
+	if len(state.PartyRoles) != 1 || state.PartyRoles[0].Tid != 5001 {
+		t.Fatalf("expected party roles unchanged during cooldown, got %+v", state.PartyRoles)
+	}
+}
+
+func TestFeastRandomShipsRejectsStringTimedActivity(t *testing.T) {
+	commanderID := uint32(9015)
+	actID := uint32(60023)
+	cleanupFeastData(t, commanderID, actID)
+	seedConfigEntry(t, "ShareCfg/activity_template.json", "60023", `{"id":60023,"type":999,"config_data":[7001],"time":"stop"}`)
+	client := &connection.Client{Commander: setupMiniGameCommander(t, commanderID)}
+	defer cleanupFeastData(t, commanderID, actID)
+
+	payload := &protobuf.CS_26158{ActId: proto.Uint32(actID), ShipGroupId: []uint32{7001}}
+	buf, err := proto.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if _, _, err := answer.FeastRandomShips(&buf, client); err != nil {
+		t.Fatalf("FeastRandomShips failed: %v", err)
+	}
+
+	response := &protobuf.SC_26159{}
+	decodeTestPacket(t, client, 26159, response)
+	if response.GetRet() == 0 {
+		t.Fatalf("expected failure for non-running string-timed activity")
+	}
+}

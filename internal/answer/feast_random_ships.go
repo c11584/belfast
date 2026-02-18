@@ -47,8 +47,12 @@ func FeastRandomShips(buffer *[]byte, client *connection.Client) (int, int, erro
 	if err != nil {
 		return 0, 26159, err
 	}
+	nowUnix := uint32(time.Now().Unix())
+	if state.RefreshTime > nowUnix {
+		return client.SendMessage(26159, response)
+	}
 	state.PartyRoles = partyRoles
-	state.RefreshTime = uint32(time.Now().Add(time.Hour).Unix())
+	state.RefreshTime = nowUnix + uint32(time.Hour/time.Second)
 	if err := orm.SaveFeastState(state); err != nil {
 		return 0, 26159, err
 	}
