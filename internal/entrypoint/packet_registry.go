@@ -117,6 +117,8 @@ func registerPackets() {
 	packets.RegisterPacketHandler(24009, []packets.PacketHandler{answer.ChallengeSettle})
 	packets.RegisterPacketHandler(24011, []packets.PacketHandler{answer.ChallengeReset})
 	packets.RegisterPacketHandler(26051, []packets.PacketHandler{answer.AtelierRequest})
+	packets.RegisterPacketHandler(26053, []packets.PacketHandler{answer.AtelierComposite})
+	packets.RegisterPacketHandler(26055, []packets.PacketHandler{answer.AtelierRefreshBuff})
 	packets.RegisterPacketHandler(26060, []packets.PacketHandler{answer.CityRebuildGetData})
 	packets.RegisterPacketHandler(26062, []packets.PacketHandler{answer.CityRebuildEndRecruit})
 	packets.RegisterPacketHandler(26064, []packets.PacketHandler{answer.CityRebuildBuildingAction})
