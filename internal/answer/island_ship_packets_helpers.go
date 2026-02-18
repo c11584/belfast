@@ -369,25 +369,25 @@ func parseGiftEffectBranch(raw any) (islandGiftEffect, bool) {
 	if !ok || len(array) == 0 {
 		return islandGiftEffect{}, false
 	}
-	energy := parseUint32Any(array[0])
+	energy := parseGiftUint32Any(array[0])
 	buffs := []uint32{}
 	for i := 1; i < len(array); i++ {
 		if list, ok := array[i].([]any); ok {
 			for j := range list {
-				if value := parseUint32Any(list[j]); value > 0 {
+				if value := parseGiftUint32Any(list[j]); value > 0 {
 					buffs = append(buffs, value)
 				}
 			}
 			continue
 		}
-		if value := parseUint32Any(array[i]); value > 0 {
+		if value := parseGiftUint32Any(array[i]); value > 0 {
 			buffs = append(buffs, value)
 		}
 	}
 	return islandGiftEffect{Energy: energy, BuffIDs: buffs}, true
 }
 
-func parseUint32Any(v any) uint32 {
+func parseGiftUint32Any(v any) uint32 {
 	switch value := v.(type) {
 	case float64:
 		if value < 0 {

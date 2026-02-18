@@ -193,6 +193,17 @@ func buildIslandPrivateData(ownerID uint32, snapshot *orm.IslandSnapshot) (*prot
 		}
 	}
 
+	viewBook := &protobuf.PB_VIEW_BOOK{CondList: []*protobuf.PB_BOOK_COND{}, BookList: []uint32{}, BookAwards: []uint32{}, BookCollects: []*protobuf.PB_BOOK_COLLECT{}, ItemList: []*protobuf.PB_ISLAND_ITEM{}}
+	bookState, err := orm.GetIslandBookState(ownerID)
+	if err != nil && !db.IsNotFound(err) {
+		return nil, err
+	}
+	if bookState != nil {
+		viewBook.BookList = append([]uint32(nil), bookState.BookList...)
+		viewBook.BookAwards = append([]uint32(nil), bookState.BookAwards...)
+		viewBook.BookCollects = buildIslandBookCollectProto(bookState.BookCollects)
+	}
+
 	return &protobuf.PB_ISLAND_PRIVATE{
 		OpenFlag:              proto.Uint32(snapshot.OpenFlag),
 		WhiteList:             []uint32{},
@@ -217,7 +228,7 @@ func buildIslandPrivateData(ownerID uint32, snapshot *orm.IslandSnapshot) (*prot
 		ActionList:            []uint32{},
 		ActionFeedbackNpcList: actionFeedbackNPC,
 		FlagList:              []*protobuf.PB_SET_FLAG{},
-		ViewBook:              &protobuf.PB_VIEW_BOOK{CondList: []*protobuf.PB_BOOK_COND{}, BookList: []uint32{}, BookAwards: []uint32{}, BookCollects: []*protobuf.PB_BOOK_COLLECT{}, ItemList: []*protobuf.PB_ISLAND_ITEM{}},
+		ViewBook:              viewBook,
 		FollowShips:           snapshot.FollowShips,
 		ImageList:             []*protobuf.PB_CARD_IMAGE{},
 		FishSys:               buildIslandFishSys(ownerID),
