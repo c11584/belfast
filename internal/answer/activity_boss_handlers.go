@@ -2,6 +2,7 @@ package answer
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/ggmolly/belfast/internal/connection"
@@ -87,8 +88,14 @@ func loadActivityBossList(activity activityTemplate) ([]*protobuf.BOSS4TH, error
 		return []*protobuf.BOSS4TH{}, err
 	}
 
-	bossIDs := parseUint32RawList(cfg.BossID)
-	stageHP := parseUint32RawList(cfg.StageH)
+	bossIDs, err := parseUint32RawList(cfg.BossID)
+	if err != nil {
+		return []*protobuf.BOSS4TH{}, err
+	}
+	stageHP, err := parseUint32RawList(cfg.StageH)
+	if err != nil {
+		return []*protobuf.BOSS4TH{}, err
+	}
 
 	bosses := make([]*protobuf.BOSS4TH, 0, len(bossIDs))
 	for idx, bossID := range bossIDs {
@@ -108,14 +115,14 @@ func loadActivityBossList(activity activityTemplate) ([]*protobuf.BOSS4TH, error
 	return bosses, nil
 }
 
-func parseUint32RawList(raw json.RawMessage) []uint32 {
+func parseUint32RawList(raw json.RawMessage) ([]uint32, error) {
 	if len(raw) == 0 {
-		return []uint32{}
+		return []uint32{}, nil
 	}
 
 	var list []uint32
 	if err := json.Unmarshal(raw, &list); err == nil {
-		return list
+		return list, nil
 	}
 
 	var nested [][]uint32
@@ -124,8 +131,8 @@ func parseUint32RawList(raw json.RawMessage) []uint32 {
 		for _, group := range nested {
 			flat = append(flat, group...)
 		}
-		return flat
+		return flat, nil
 	}
 
-	return []uint32{}
+	return nil, fmt.Errorf("invalid uint32 list json")
 }

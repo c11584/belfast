@@ -78,6 +78,28 @@ func TestActivityBossPageUpdateWrongActivityType(t *testing.T) {
 	}
 }
 
+func TestActivityBossPageUpdateMalformedBossConfig(t *testing.T) {
+	client := setupConfigTest(t)
+	seedConfigEntry(t, "ShareCfg/activity_template.json", "9001", `{"id":9001,"type":52,"config_id":301}`)
+	seedConfigEntry(t, activityEventWorldBossCategory, "301", `{"id":301,"boss_id":{},"stage_hp":[15000]}`)
+
+	request := protobuf.CS_26031{ActId: proto.Uint32(9001)}
+	data, err := proto.Marshal(&request)
+	if err != nil {
+		t.Fatalf("marshal request failed: %v", err)
+	}
+
+	if _, _, err := ActivityBossPageUpdate(&data, client); err != nil {
+		t.Fatalf("ActivityBossPageUpdate malformed config failed: %v", err)
+	}
+
+	var response protobuf.SC_26032
+	decodeResponse(t, client, &response)
+	if response.GetResult() == 0 {
+		t.Fatalf("expected non-zero result for malformed boss config")
+	}
+}
+
 func TestActivityBossPageUpdateDecodeFailure(t *testing.T) {
 	client := setupConfigTest(t)
 	invalid := []byte{0xff, 0x01}
@@ -161,6 +183,31 @@ func TestGetBoss4thInfoWrongActivityType(t *testing.T) {
 	decodeResponse(t, client, &response)
 	if response.GetResult() == 0 {
 		t.Fatalf("expected non-zero result for wrong activity type")
+	}
+}
+
+func TestGetBoss4thInfoMalformedBossConfig(t *testing.T) {
+	client := setupConfigTest(t)
+	seedConfigEntry(t, "ShareCfg/activity_template.json", "9001", `{"id":9001,"type":52,"config_id":301}`)
+	seedConfigEntry(t, activityEventWorldBossCategory, "301", `{"id":301,"boss_id":[8101],"stage_hp":{}}`)
+
+	request := protobuf.CS_26081{ActId: proto.Uint32(9001)}
+	data, err := proto.Marshal(&request)
+	if err != nil {
+		t.Fatalf("marshal request failed: %v", err)
+	}
+
+	if _, _, err := GetBoss4thInfo(&data, client); err != nil {
+		t.Fatalf("GetBoss4thInfo malformed config failed: %v", err)
+	}
+
+	var response protobuf.SC_26082
+	decodeResponse(t, client, &response)
+	if response.GetResult() == 0 {
+		t.Fatalf("expected non-zero result for malformed boss config")
+	}
+	if len(response.GetBossList()) != 0 {
+		t.Fatalf("expected empty boss list for malformed config")
 	}
 }
 
