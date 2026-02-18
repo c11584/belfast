@@ -96,6 +96,7 @@ func (s *islandRuntimeState) releaseSession(commanderID uint32, islandID uint32)
 	if !ok || activeIslandID != islandID {
 		return false
 	}
+	s.releaseObjectOwnershipLocked(commanderID, islandID)
 	s.clearSessionLocked(commanderID)
 	return true
 }
@@ -312,6 +313,20 @@ func (s *islandRuntimeState) clearSessionLocked(commanderID uint32) {
 	delete(s.sessions, commanderID)
 	if visitors := s.visitors[islandID]; visitors != nil {
 		delete(visitors, commanderID)
+	}
+}
+
+func (s *islandRuntimeState) releaseObjectOwnershipLocked(commanderID uint32, islandID uint32) {
+	objects := s.objects[islandID]
+	if objects == nil {
+		return
+	}
+	for _, state := range objects {
+		for slotID, ownerID := range state.slots {
+			if ownerID == commanderID {
+				state.slots[slotID] = 0
+			}
+		}
 	}
 }
 

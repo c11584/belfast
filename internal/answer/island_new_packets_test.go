@@ -46,6 +46,29 @@ func TestIslandExitAndQueueRelease(t *testing.T) {
 	}
 }
 
+func TestIslandReleaseSessionClearsObjectSlotOwnership(t *testing.T) {
+	globalIslandRuntimeState.resetForTest()
+	owner := setupHandlerCommander(t)
+	peer := setupHandlerCommander(t)
+
+	globalIslandRuntimeState.setSessionForTest(owner.Commander.CommanderID, 9902)
+	globalIslandRuntimeState.seedIslandObjects(9902, []islandObjectTemplate{{ID: 3001, Type: 1, SlotIDs: []uint32{1}, Status: 1}})
+
+	ownedObject, ok := globalIslandRuntimeState.applyIslandControl(owner.Commander.CommanderID, 9902, 1, 3001, 1, 1, 1)
+	if !ok || ownedObject.GetSlots()[0].GetOwnerId() != owner.Commander.CommanderID {
+		t.Fatalf("expected owner to acquire object slot")
+	}
+
+	if !globalIslandRuntimeState.releaseSession(owner.Commander.CommanderID, 9902) {
+		t.Fatalf("expected release session to succeed")
+	}
+
+	peerObject, ok := globalIslandRuntimeState.applyIslandControl(peer.Commander.CommanderID, 9902, 1, 3001, 1, 1, 1)
+	if !ok || peerObject.GetSlots()[0].GetOwnerId() != peer.Commander.CommanderID {
+		t.Fatalf("expected slot ownership to clear on release")
+	}
+}
+
 func TestIslandExitFailureCases(t *testing.T) {
 	globalIslandRuntimeState.resetForTest()
 	client := setupHandlerCommander(t)
