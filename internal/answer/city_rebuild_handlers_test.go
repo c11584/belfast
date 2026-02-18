@@ -86,6 +86,17 @@ func TestCityRebuildBuildingRecruitAndEndRecruit(t *testing.T) {
 		t.Fatalf("expected recruit-start success")
 	}
 
+	seedConfigEntry(t, cityRebuildBuildingCategory, "3", `{"id":3,"type":2,"pt_cost":[8,65103,20],"role_id":2002,"need_level":0}`)
+	payload = marshalPacketRequest(t, &protobuf.CS_26064{ActId: proto.Uint32(9001), BuildingId: proto.Uint32(3)})
+	if _, _, err := CityRebuildBuildingAction(&payload, client); err != nil {
+		t.Fatalf("CityRebuildBuildingAction second recruit failed: %v", err)
+	}
+	buildResponse = &protobuf.SC_26065{}
+	decodeLoveLetterPacketMessage(t, client, 26065, buildResponse)
+	if buildResponse.GetResult() != 0 {
+		t.Fatalf("expected second recruit-start success")
+	}
+
 	payload = marshalPacketRequest(t, &protobuf.CS_26062{ActId: proto.Uint32(9001), Roles: []uint32{2001, 2001}})
 	if _, _, err := CityRebuildEndRecruit(&payload, client); err != nil {
 		t.Fatalf("CityRebuildEndRecruit failed: %v", err)
@@ -94,6 +105,14 @@ func TestCityRebuildBuildingRecruitAndEndRecruit(t *testing.T) {
 	decodeLoveLetterPacketMessage(t, client, 26063, recruitResponse)
 	if recruitResponse.GetResult() != 0 || recruitResponse.GetAdjust() == nil {
 		t.Fatalf("expected end recruit success with adjust")
+	}
+
+	state, err = orm.GetOrCreateCityRebuildState(client.Commander.CommanderID, 9001)
+	if err != nil {
+		t.Fatalf("reload state: %v", err)
+	}
+	if !cityRebuildContainsRecruit(state.Recruits, 2002) {
+		t.Fatalf("expected unrelated recruit to remain active")
 	}
 
 	payload = marshalPacketRequest(t, &protobuf.CS_26062{ActId: proto.Uint32(9001), Roles: []uint32{2001}})

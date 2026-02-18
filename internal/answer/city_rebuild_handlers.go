@@ -79,10 +79,14 @@ func CityRebuildEndRecruit(buffer *[]byte, client *connection.Client) (int, int,
 			return connection.SendProtoMessage(26063, client, buildCityRebuildAdjustResponse26063(cityRebuildResultFailed, nil))
 		}
 	}
+	roleSet := make(map[uint32]struct{}, len(roles))
+	for _, roleID := range roles {
+		roleSet[roleID] = struct{}{}
+	}
 
 	nextRecruits := make([]orm.CityRebuildRecruit, 0, len(state.Recruits))
 	for _, recruit := range state.Recruits {
-		if _, done := recruitByID[recruit.ID]; done {
+		if _, done := roleSet[recruit.ID]; done {
 			continue
 		}
 		nextRecruits = append(nextRecruits, recruit)
@@ -220,10 +224,10 @@ func CityRebuildResultSummary(buffer *[]byte, client *connection.Client) (int, i
 
 	state, err := loadCityRebuildStateForRequest(client, req.GetActId())
 	if err != nil {
-		return connection.SendProtoMessage(26069, client, &protobuf.SC_26069{Result: proto.Uint32(cityRebuildResultFailed)})
+		return connection.SendProtoMessage(26069, client, buildCityRebuildSummaryResponse(cityRebuildResultFailed, nil))
 	}
 	if !state.SummaryReady {
-		return connection.SendProtoMessage(26069, client, &protobuf.SC_26069{Result: proto.Uint32(cityRebuildResultFailed)})
+		return connection.SendProtoMessage(26069, client, buildCityRebuildSummaryResponse(cityRebuildResultFailed, state))
 	}
 
 	summary := &protobuf.NINJA_SUMMARY{
@@ -234,7 +238,7 @@ func CityRebuildResultSummary(buffer *[]byte, client *connection.Client) (int, i
 	state.SummaryReady = false
 	state.SummaryPt = 0
 	if err := orm.SaveCityRebuildState(state); err != nil {
-		return connection.SendProtoMessage(26069, client, &protobuf.SC_26069{Result: proto.Uint32(cityRebuildResultFailed)})
+		return connection.SendProtoMessage(26069, client, buildCityRebuildSummaryResponse(cityRebuildResultFailed, state))
 	}
 
 	response := &protobuf.SC_26069{
@@ -450,6 +454,21 @@ func buildCityRebuildAdjustResponse26067(result uint32, state *orm.CityRebuildSt
 
 func buildCityRebuildAdjustResponse26071(result uint32, state *orm.CityRebuildState) *protobuf.SC_26071 {
 	return &protobuf.SC_26071{Result: proto.Uint32(result), Adjust: buildCityRebuildAdjust(state)}
+}
+
+func buildCityRebuildSummaryResponse(result uint32, state *orm.CityRebuildState) *protobuf.SC_26069 {
+	summaryPt := uint32(0)
+	if state != nil {
+		summaryPt = state.SummaryPt
+	}
+	return &protobuf.SC_26069{
+		Result: proto.Uint32(result),
+		Summary: &protobuf.NINJA_SUMMARY{
+			SummaryPt: buildNinjaPT(summaryPt),
+			AwardList: []*protobuf.DROPINFO{},
+			Adjust:    buildCityRebuildAdjust(state),
+		},
+	}
 }
 
 func cityRebuildDedupeUint32(values []uint32) []uint32 {
