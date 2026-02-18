@@ -24,6 +24,9 @@ func IslandGetCardData(buffer *[]byte, client *connection.Client) (int, int, err
 
 	targetCommander, err := orm.LoadCommanderWithDetails(targetID)
 	if err != nil {
+		if db.IsNotFound(err) {
+			return client.SendMessage(21327, emptyIslandCardDataResponse())
+		}
 		return 0, 21327, err
 	}
 
@@ -62,6 +65,10 @@ func IslandGetCardData(buffer *[]byte, client *connection.Client) (int, int, err
 		if giftErr == nil && gifted {
 			labelFlag = 1
 		}
+		cardState.VisitNum++
+		if err := orm.UpsertIslandCardState(cardState); err != nil {
+			return 0, 21327, err
+		}
 	}
 
 	labels := buildIslandLabelList(cardState.LabelCounts)
@@ -94,4 +101,27 @@ func IslandGetCardData(buffer *[]byte, client *connection.Client) (int, int, err
 		BlackFlag:     proto.Uint32(0),
 	}
 	return client.SendMessage(21327, response)
+}
+
+func emptyIslandCardDataResponse() *protobuf.SC_21327 {
+	picture := strconv.FormatUint(uint64(loadIslandSetInt("island_card_photo_default", 4001)), 10)
+	return &protobuf.SC_21327{
+		Name:          proto.String(""),
+		Picture:       proto.String(picture),
+		VisitWord:     proto.String(""),
+		Lv:            proto.Uint32(0),
+		SocialFlag:    proto.Uint32(0),
+		LabelViewFlag: proto.Uint32(0),
+		LabelList:     []*protobuf.PB_ISLAND_LABEL{},
+		AchieveList:   []uint32{},
+		AchieveNum:    proto.Uint32(0),
+		VisitNum:      proto.Uint32(0),
+		GoodNum:       proto.Uint32(0),
+		ShipNum:       proto.Uint32(0),
+		BookNum:       proto.Uint32(0),
+		LabelFlag:     proto.Uint32(0),
+		GoodFlag:      proto.Uint32(0),
+		WhiteFlag:     proto.Uint32(0),
+		BlackFlag:     proto.Uint32(0),
+	}
 }

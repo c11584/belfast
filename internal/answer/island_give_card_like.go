@@ -28,17 +28,20 @@ func IslandGiveCardLike(buffer *[]byte, client *connection.Client) (int, int, er
 	}
 
 	err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
+		state, err := orm.GetIslandCardStateForUpdateTx(context.Background(), tx, targetID)
+		if err != nil {
+			return err
+		}
+		if state.SocialFlag == 0 {
+			return nil
+		}
+
 		inserted, err := orm.AddIslandCardLikeTx(context.Background(), tx, client.Commander.CommanderID, targetID)
 		if err != nil {
 			return err
 		}
 		if !inserted {
 			return nil
-		}
-
-		state, err := orm.GetIslandCardStateForUpdateTx(context.Background(), tx, targetID)
-		if err != nil {
-			return err
 		}
 		state.GoodNum++
 		if err := orm.SaveIslandCardStateTx(context.Background(), tx, state); err != nil {

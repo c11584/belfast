@@ -155,6 +155,84 @@ func TestIslandCardLikeAndLabelFlow(t *testing.T) {
 	}
 }
 
+func TestIslandCardGetDataMissingTargetReturnsEmptyPayload(t *testing.T) {
+	client := setupHandlerCommander(t)
+	clearTable(t, &orm.ConfigEntry{})
+	seedConfigEntry(t, islandSetCategory, "island_card_photo_default", `{"key":"island_card_photo_default","key_value_int":4001}`)
+
+	payload, _ := proto.Marshal(&protobuf.CS_21326{UserId: proto.Uint32(4294967295)})
+	if _, _, err := IslandGetCardData(&payload, client); err != nil {
+		t.Fatalf("get card data missing target failed: %v", err)
+	}
+
+	var response protobuf.SC_21327
+	decodePacketAt(t, client, 0, 21327, &response)
+	if response.GetName() != "" || response.GetPicture() != "4001" || response.GetLv() != 0 {
+		t.Fatalf("unexpected missing-target response: %+v", response)
+	}
+}
+
+func TestIslandGiveCardLikeRespectsSocialFlag(t *testing.T) {
+	sender := setupHandlerCommander(t)
+	receiver := setupHandlerCommander(t)
+	clearTable(t, &orm.IslandCardState{})
+
+	if err := db.DefaultStore.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
+		state := orm.NewIslandCardState(receiver.Commander.CommanderID)
+		state.SocialFlag = 0
+		return orm.SaveIslandCardStateTx(context.Background(), tx, state)
+	}); err != nil {
+		t.Fatalf("seed receiver social flag: %v", err)
+	}
+
+	likePayload, _ := proto.Marshal(&protobuf.CS_21334{UserId: proto.Uint32(receiver.Commander.CommanderID)})
+	if _, _, err := IslandGiveCardLike(&likePayload, sender); err != nil {
+		t.Fatalf("give like with social off failed: %v", err)
+	}
+
+	var likeResp protobuf.SC_21335
+	decodePacketAt(t, sender, 0, 21335, &likeResp)
+	if likeResp.GetResult() == 0 {
+		t.Fatalf("expected like rejection when social flag disabled")
+	}
+
+	liked, err := orm.HasIslandCardLike(sender.Commander.CommanderID, receiver.Commander.CommanderID)
+	if err != nil {
+		t.Fatalf("check like relation: %v", err)
+	}
+	if liked {
+		t.Fatalf("expected no persisted like when social flag disabled")
+	}
+}
+
+func TestIslandGetCardDataIncrementsVisitCountForVisitor(t *testing.T) {
+	viewer := setupHandlerCommander(t)
+	target := setupHandlerCommander(t)
+	clearTable(t, &orm.ConfigEntry{})
+	clearTable(t, &orm.IslandCardState{})
+	seedConfigEntry(t, islandSetCategory, "island_card_photo_default", `{"key":"island_card_photo_default","key_value_int":4001}`)
+
+	payload, _ := proto.Marshal(&protobuf.CS_21326{UserId: proto.Uint32(target.Commander.CommanderID)})
+	if _, _, err := IslandGetCardData(&payload, viewer); err != nil {
+		t.Fatalf("first get card data failed: %v", err)
+	}
+	var firstResp protobuf.SC_21327
+	decodePacketAt(t, viewer, 0, 21327, &firstResp)
+	if firstResp.GetVisitNum() != 1 {
+		t.Fatalf("expected first visit count 1, got %d", firstResp.GetVisitNum())
+	}
+
+	viewer.Buffer.Reset()
+	if _, _, err := IslandGetCardData(&payload, viewer); err != nil {
+		t.Fatalf("second get card data failed: %v", err)
+	}
+	var secondResp protobuf.SC_21327
+	decodePacketAt(t, viewer, 0, 21327, &secondResp)
+	if secondResp.GetVisitNum() != 2 {
+		t.Fatalf("expected second visit count 2, got %d", secondResp.GetVisitNum())
+	}
+}
+
 func TestIslandBookUnlockCollectAndAwardFlow(t *testing.T) {
 	client := setupHandlerCommander(t)
 	clearTable(t, &orm.ConfigEntry{})
