@@ -84,6 +84,14 @@ func buildIslandPublicData(ownerID uint32, snapshot *orm.IslandSnapshot) *protob
 	}
 	sort.Slice(repeatFinish, func(i, j int) bool { return repeatFinish[i].GetId() < repeatFinish[j].GetId() })
 
+	placedData := &protobuf.PB_PLACEMENT_DATA{PlacedList: []*protobuf.PB_FURNITURE_DATA{}, FloorData: []uint32{}, TileData: []uint32{}}
+	if placement, err := orm.GetIslandAgoraPlacement(ownerID); err == nil && len(placement.PlacedData) > 0 {
+		decoded := &protobuf.PB_PLACEMENT_DATA{}
+		if err := proto.Unmarshal(placement.PlacedData, decoded); err == nil {
+			placedData = decoded
+		}
+	}
+
 	inviteList, _ := orm.ListIslandShipInvites(ownerID)
 	ships, _ := orm.ListIslandShips(ownerID)
 	shipList := make([]*protobuf.PB_ISLAND_SHIP, 0, len(ships))
@@ -131,7 +139,7 @@ func buildIslandPublicData(ownerID uint32, snapshot *orm.IslandSnapshot) *protob
 		ProsperityRewarded: []uint32{},
 		ShipSys:            &protobuf.PB_ISLAND_SHIP_SYS{InviteList: inviteList, ShipList: shipList, HadDress: hadRoleDress, WearList: wearList, SkinList: skinList},
 		AgoraLevel:         proto.Uint32(maxUint32(snapshot.AgoraLevel, 1)),
-		PlacedData:         &protobuf.PB_PLACEMENT_DATA{PlacedList: []*protobuf.PB_FURNITURE_DATA{}, FloorData: []uint32{}, TileData: []uint32{}},
+		PlacedData:         placedData,
 		FlagList:           []uint32{},
 		TreeGiftTimestamp:  proto.Uint32(0),
 		TreeGiftCount:      proto.Uint32(0),
@@ -173,6 +181,32 @@ func buildIslandPrivateData(ownerID uint32, snapshot *orm.IslandSnapshot) (*prot
 		achievementSys.FinishList = append([]uint32(nil), achievementState.FinishList...)
 	}
 
+	socialState, err := orm.GetCommanderIslandSocialState(ownerID)
+	if err != nil && !db.IsNotFound(err) {
+		return nil, err
+	}
+	whiteList := []uint32{}
+	blackList := []uint32{}
+	if socialState != nil {
+		whiteList = append(whiteList, socialState.WhiteList...)
+		blackList = append(blackList, socialState.BlackList...)
+	}
+
+	bookConds, err := orm.ListIslandBookConds(ownerID)
+	if err != nil {
+		return nil, err
+	}
+	bookCondByType := make(map[uint32][]uint32)
+	for _, cond := range bookConds {
+		bookCondByType[cond.Type] = append(bookCondByType[cond.Type], cond.UnlockID)
+	}
+	viewBookConds := make([]*protobuf.PB_BOOK_COND, 0, len(bookCondByType))
+	for condType, unlockIDs := range bookCondByType {
+		sort.Slice(unlockIDs, func(i, j int) bool { return unlockIDs[i] < unlockIDs[j] })
+		viewBookConds = append(viewBookConds, &protobuf.PB_BOOK_COND{Type: proto.Uint32(condType), UnlockIds: unlockIDs})
+	}
+	sort.Slice(viewBookConds, func(i, j int) bool { return viewBookConds[i].GetType() < viewBookConds[j].GetType() })
+
 	curDress := []*protobuf.PB_ISLAND_CUR_DRESS{}
 	capList := []*protobuf.PB_CAP_STATE{}
 	if profile, err := orm.GetIslandCommanderDressProfile(ownerID); err == nil {
@@ -203,11 +237,11 @@ func buildIslandPrivateData(ownerID uint32, snapshot *orm.IslandSnapshot) (*prot
 		viewBook.BookAwards = append([]uint32(nil), bookState.BookAwards...)
 		viewBook.BookCollects = buildIslandBookCollectProto(bookState.BookCollects)
 	}
-
+	viewBook.CondList = viewBookConds
 	return &protobuf.PB_ISLAND_PRIVATE{
 		OpenFlag:              proto.Uint32(snapshot.OpenFlag),
-		WhiteList:             []uint32{},
-		BlackList:             []uint32{},
+		WhiteList:             whiteList,
+		BlackList:             blackList,
 		VisitorHistory:        []*protobuf.PB_VISITOR{},
 		ItemList:              []*protobuf.PB_ISLAND_ITEM{},
 		ItemListCache:         []*protobuf.PB_ISLAND_ITEM{},
