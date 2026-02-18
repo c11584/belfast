@@ -15,7 +15,7 @@ import (
 
 func TestLimitChallengeInfoReturnsState(t *testing.T) {
 	client := setupConfigTest(t)
-	seedLimitChallengeConfig(t, uint32(time.Now().UTC().Month()), []uint32{1001, 1002})
+	seedLimitChallengeConfig(t, uint32(time.Now().UTC().Month()), []uint32{1001, 0, 1002})
 
 	if err := orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 		state, err := orm.LoadLimitChallengeStateForUpdateTx(context.Background(), tx, client.Commander.CommanderID, time.Now().UTC())
@@ -44,6 +44,16 @@ func TestLimitChallengeInfoReturnsState(t *testing.T) {
 	}
 	if len(response.GetTimes()) != 2 || len(response.GetAwards()) != 2 {
 		t.Fatalf("expected times and awards for monthly challenges")
+	}
+	for _, kv := range response.GetTimes() {
+		if kv.GetKey() == 0 {
+			t.Fatalf("expected zero challenge ID to be excluded from times")
+		}
+	}
+	for _, kv := range response.GetAwards() {
+		if kv.GetKey() == 0 {
+			t.Fatalf("expected zero challenge ID to be excluded from awards")
+		}
 	}
 	if len(response.GetPassIds()) != 2 {
 		t.Fatalf("expected two pass ids")

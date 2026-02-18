@@ -61,13 +61,15 @@ func LimitChallengeInfo(buffer *[]byte, client *connection.Client) (int, int, er
 		return client.SendMessage(24021, &response)
 	}
 
-	stageSet := make(map[uint32]struct{}, len(monthConfig.Stage))
-	for _, challengeID := range monthConfig.Stage {
+	challengeIDs := normalizedChallengeIDs(monthConfig.Stage)
+
+	stageSet := make(map[uint32]struct{}, len(challengeIDs))
+	for _, challengeID := range challengeIDs {
 		stageSet[challengeID] = struct{}{}
 	}
 	times := []*protobuf.KVDATA{}
 	awards := []*protobuf.KVDATA{}
-	for _, challengeID := range sortedUint32s(monthConfig.Stage) {
+	for _, challengeID := range challengeIDs {
 		times = append(times, &protobuf.KVDATA{Key: proto.Uint32(challengeID), Value: proto.Uint32(state.BestTimes[challengeID])})
 		awardValue := uint32(0)
 		if state.Awarded[challengeID] {

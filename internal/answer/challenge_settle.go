@@ -17,7 +17,7 @@ func ChallengeSettle(buffer *[]byte, client *connection.Client) (int, int, error
 	activityID, mode, score := parseChallengeSettlePayload(*buffer)
 
 	if activityID > 0 && isValidChallengeMode(mode) && score > 0 {
-		_ = orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
+		err := orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 			state, err := orm.GetChallengeModeStateForUpdateTx(context.Background(), tx, client.Commander.CommanderID, activityID, mode)
 			if err != nil {
 				if db.IsNotFound(err) {
@@ -28,6 +28,9 @@ func ChallengeSettle(buffer *[]byte, client *connection.Client) (int, int, error
 			state.CurrentScore += score
 			return orm.UpsertChallengeModeStateTx(context.Background(), tx, state)
 		})
+		if err != nil {
+			return 0, 24010, err
+		}
 	}
 
 	response := protobuf.SC_24010{Score: proto.Uint32(score)}
