@@ -2,6 +2,7 @@ package answer
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
@@ -10,6 +11,8 @@ import (
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 )
+
+var errIslandChangeDressInvalidRollback = errors.New("island change dress invalid rollback")
 
 func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, int, error) {
 	var payload protobuf.CS_21617
@@ -51,16 +54,16 @@ func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, in
 		for _, wear := range payload.GetDress_List() {
 			dressID := wear.GetDressId()
 			if dressID == 0 {
-				return nil
+				return errIslandChangeDressInvalidRollback
 			}
 			sourceShipID := wear.GetShipId()
 			if sourceShipID == 0 {
 				state, err := orm.GetIslandRoleDressState(client.Commander.CommanderID, dressID)
 				if err != nil {
-					return nil
+					return errIslandChangeDressInvalidRollback
 				}
 				if state.Num == 0 {
-					return nil
+					return errIslandChangeDressInvalidRollback
 				}
 				if err := orm.AddIslandRoleDressNum(client.Commander.CommanderID, dressID, -1); err != nil {
 					return err
@@ -68,7 +71,7 @@ func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, in
 			} else {
 				removed, err := orm.RemoveIslandShipDressTx(context.Background(), tx, client.Commander.CommanderID, sourceShipID, dressID)
 				if err != nil || !removed {
-					return nil
+					return errIslandChangeDressInvalidRollback
 				}
 			}
 			if err := orm.UpsertIslandShipDressTx(context.Background(), tx, client.Commander.CommanderID, targetShipID, dressID); err != nil {
@@ -81,7 +84,7 @@ func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, in
 		if skinID != 0 {
 			skinState, err := orm.GetIslandShipSkinState(client.Commander.CommanderID, targetShipID, skinID)
 			if err != nil {
-				return nil
+				return errIslandChangeDressInvalidRollback
 			}
 			if colorID != 0 {
 				owned := false
@@ -92,7 +95,7 @@ func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, in
 					}
 				}
 				if !owned {
-					return nil
+					return errIslandChangeDressInvalidRollback
 				}
 				skinState.ColorID = colorID
 				if err := orm.UpsertIslandShipSkinState(skinState); err != nil {
@@ -109,7 +112,9 @@ func HandleIslandChangeDress(buffer *[]byte, client *connection.Client) (int, in
 		return nil
 	})
 	if err != nil {
-		_ = client.Commander.Load()
+		if !errors.Is(err, errIslandChangeDressInvalidRollback) {
+			_ = client.Commander.Load()
+		}
 	}
 
 	return client.SendMessage(21618, response)

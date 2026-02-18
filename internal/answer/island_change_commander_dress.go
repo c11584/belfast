@@ -2,6 +2,7 @@ package answer
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
+	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
@@ -28,20 +29,38 @@ func IslandChangeCommanderDress(buffer *[]byte, client *connection.Client) (int,
 
 	for i := range payload.GetColorList() {
 		dressID := payload.GetColorList()[i].GetId()
+		colorID := payload.GetColorList()[i].GetColor()
 		if dressID == 0 {
 			continue
 		}
-		state, err := orm.GetIslandRoleDressState(client.Commander.CommanderID, dressID)
-		if err != nil || state.Num == 0 {
+		roleDressState, err := orm.GetIslandRoleDressState(client.Commander.CommanderID, dressID)
+		if err != nil || roleDressState.Num == 0 {
 			continue
 		}
-		_ = orm.UpsertIslandCommanderDressState(&orm.IslandCommanderDressState{
-			CommanderID: client.Commander.CommanderID,
-			DressID:     dressID,
-			State:       1,
-			Color:       payload.GetColorList()[i].GetColor(),
-			ColorList:   []uint32{payload.GetColorList()[i].GetColor()},
-		})
+		commanderDressState, err := orm.GetIslandCommanderDressState(client.Commander.CommanderID, dressID)
+		if err != nil {
+			if !db.IsNotFound(err) {
+				continue
+			}
+			if colorID != 0 {
+				continue
+			}
+			commanderDressState = &orm.IslandCommanderDressState{
+				CommanderID: client.Commander.CommanderID,
+				DressID:     dressID,
+				State:       1,
+				Color:       0,
+				ColorList:   []uint32{},
+			}
+		}
+		if colorID != 0 && !containsUint32(commanderDressState.ColorList, colorID) {
+			continue
+		}
+		commanderDressState.State = 1
+		commanderDressState.Color = colorID
+		if err := orm.UpsertIslandCommanderDressState(commanderDressState); err != nil {
+			continue
+		}
 	}
 
 	curDress := make([]orm.IslandCurDress, 0, len(payload.GetDressList()))

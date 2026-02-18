@@ -3,6 +3,7 @@ package answer
 import (
 	"testing"
 
+	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
@@ -198,7 +199,11 @@ func TestIslandDressReadCommanderDressAndBuyColor(t *testing.T) {
 	var changeResponse protobuf.SC_21627
 	decodePacketAt(t, client, 0, 21627, &changeResponse)
 	if changeResponse.GetResult() != 0 {
-		t.Fatalf("expected commander dress save success")
+		t.Fatalf("expected commander dress update with ignored unowned color")
+	}
+
+	if _, err := orm.GetIslandCommanderDressState(client.Commander.CommanderID, 9501); err == nil || !db.IsNotFound(err) {
+		t.Fatalf("expected no commander dress color state for unowned color, err=%v", err)
 	}
 
 	seedConfigEntry(t, islandDressColorTemplateCategory, "9601", `{"id":9601,"belongto_dress":9501,"cost":[[41,9602,1]]}`)
@@ -213,6 +218,62 @@ func TestIslandDressReadCommanderDressAndBuyColor(t *testing.T) {
 	decodePacketAt(t, client, 0, 21629, &buyResponse)
 	if buyResponse.GetResult() != 0 {
 		t.Fatalf("expected dress color purchase success")
+	}
+
+	applyPayload := &protobuf.CS_21626{IslandId: proto.Uint32(client.Commander.CommanderID), DressList: []*protobuf.PB_ISLAND_CUR_DRESS{{Type: proto.Uint32(1), Id: proto.Uint32(9501)}}, ColorList: []*protobuf.PB_DRESS_COLOR{{Id: proto.Uint32(9501), Color: proto.Uint32(9601)}}}
+	applyBuffer, _ := proto.Marshal(applyPayload)
+	client.Buffer.Reset()
+	if _, _, err := IslandChangeCommanderDress(&applyBuffer, client); err != nil {
+		t.Fatalf("apply commander dress color failed: %v", err)
+	}
+	decodePacketAt(t, client, 0, 21627, &changeResponse)
+	if changeResponse.GetResult() != 0 {
+		t.Fatalf("expected commander dress save success after color unlock")
+	}
+
+	dressState, err := orm.GetIslandCommanderDressState(client.Commander.CommanderID, 9501)
+	if err != nil {
+		t.Fatalf("load commander dress state: %v", err)
+	}
+	if dressState.Color != 9601 || !containsUint32(dressState.ColorList, 9601) {
+		t.Fatalf("expected equipped and preserved unlocked color, got %+v", dressState)
+	}
+}
+
+func TestIslandChangeDressInvalidWearRollsBackUnload(t *testing.T) {
+	client := setupHandlerCommander(t)
+	resetIslandShipPacketTables(t, client.Commander.CommanderID)
+
+	if err := orm.UpsertIslandShip(&orm.IslandShip{CommanderID: client.Commander.CommanderID, ShipID: 1005, Level: 1, BreakLv: 1, SkillLv: 1, ExtraAttrs: []orm.IslandShipAttr{}, Buffs: []orm.IslandShipBuff{}, CanFollow: true}); err != nil {
+		t.Fatalf("seed ship: %v", err)
+	}
+	execAnswerTestSQLT(t, "INSERT INTO island_ship_dresses (commander_id, ship_id, dress_id) VALUES ($1, $2, $3)", int64(client.Commander.CommanderID), int64(1005), int64(9701))
+
+	payload := &protobuf.CS_21617{
+		ShipId:      proto.Uint32(1005),
+		UnloadDress: []uint32{9701},
+		Dress_List:  []*protobuf.PB_ISLAND_SHIP_WEAR{{ShipId: proto.Uint32(0), DressId: proto.Uint32(0)}},
+		SkinId:      proto.Uint32(0),
+		ColorId:     proto.Uint32(0),
+	}
+	buffer, _ := proto.Marshal(payload)
+	client.Buffer.Reset()
+	if _, _, err := HandleIslandChangeDress(&buffer, client); err != nil {
+		t.Fatalf("change dress failed: %v", err)
+	}
+
+	var response protobuf.SC_21618
+	decodePacketAt(t, client, 0, 21618, &response)
+	if response.GetResult() == 0 {
+		t.Fatalf("expected invalid wear to fail")
+	}
+
+	states, err := orm.ListIslandShipDressStates(client.Commander.CommanderID)
+	if err != nil {
+		t.Fatalf("list ship dress states: %v", err)
+	}
+	if len(states) != 1 || states[0].ShipID != 1005 || states[0].DressID != 9701 {
+		t.Fatalf("expected unload rollback, got %+v", states)
 	}
 }
 
