@@ -1,3 +1,4 @@
+-- Renumbered to avoid migration version collision.
 CREATE TABLE IF NOT EXISTS activity_store_states (
   commander_id bigint NOT NULL REFERENCES commanders(commander_id) ON DELETE CASCADE,
   activity_id bigint NOT NULL,
