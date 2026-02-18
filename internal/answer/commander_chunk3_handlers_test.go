@@ -39,6 +39,9 @@ func TestCommanderReserveBoxSuccess(t *testing.T) {
 	if client.Commander.DrawCount1 != 2 {
 		t.Fatalf("expected reserve usage count to increment")
 	}
+	if client.Commander.GetItemCount(20001) != 2 {
+		t.Fatalf("expected reserve box rewards to persist in inventory")
+	}
 }
 
 func TestCommanderReserveBoxInsufficientGold(t *testing.T) {
@@ -87,6 +90,21 @@ func TestCommanderCatteryAssignStyleOperationAndScene(t *testing.T) {
 	decodeResponse(t, client, &assignResponse)
 	if assignResponse.GetResult() != 0 {
 		t.Fatalf("expected assign success")
+	}
+
+	assignDuplicatePayload := protobuf.CS_25030{Slotidx: proto.Uint32(2), CommanderId: proto.Uint32(owned.ID)}
+	assignDuplicateBuffer, err := proto.Marshal(&assignDuplicatePayload)
+	if err != nil {
+		t.Fatalf("marshal duplicate assign payload: %v", err)
+	}
+	client.Buffer.Reset()
+	if _, _, err := CommanderCatteryAssign(&assignDuplicateBuffer, client); err != nil {
+		t.Fatalf("duplicate assign failed: %v", err)
+	}
+	var duplicateAssignResponse protobuf.SC_25031
+	decodeResponse(t, client, &duplicateAssignResponse)
+	if duplicateAssignResponse.GetResult() == 0 {
+		t.Fatalf("expected duplicate commander assignment to fail")
 	}
 
 	home, slots, err := orm.GetCommanderHome(client.Commander.CommanderID)

@@ -147,6 +147,14 @@ func CommanderCatteryAssign(buffer *[]byte, client *connection.Client) (int, int
 	if _, ok := client.Commander.OwnedShipsMap[newCommanderID]; !ok {
 		return client.SendMessage(25031, &response)
 	}
+	for i := range slots {
+		if slots[i].SlotID == slot.SlotID {
+			continue
+		}
+		if slots[i].AssignedCommanderID == newCommanderID {
+			return client.SendMessage(25031, &response)
+		}
+	}
 
 	slot.AssignedCommanderID = newCommanderID
 	slot.ExpTime = now

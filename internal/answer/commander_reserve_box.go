@@ -41,6 +41,9 @@ func CommanderReserveBox(buffer *[]byte, client *connection.Client) (int, int, e
 	if err := client.Commander.IncrementReserveUsage(count); err != nil {
 		return 0, 25019, err
 	}
+	if err := client.Commander.AddItem(20001, count); err != nil {
+		return 0, 25019, err
+	}
 
 	awards := make([]*protobuf.DROPINFO, 0, count)
 	for i := uint32(0); i < count; i++ {
