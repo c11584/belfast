@@ -1,6 +1,7 @@
 package answer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ggmolly/belfast/internal/orm"
@@ -133,6 +134,9 @@ func TestWithdrawMailStoreroomResourcesSuccess(t *testing.T) {
 		t.Fatalf("seed stored gold: %v", err)
 	}
 
+	startActiveOil := client.Commander.GetResourceCount(mailStoreroomOilResourceID)
+	startActiveGold := client.Commander.GetResourceCount(mailStoreroomGoldResourceID)
+
 	payload := marshalPacketRequest(t, &protobuf.CS_30012{Oil: proto.Uint32(200), Gold: proto.Uint32(100)})
 	if _, _, err := WithdrawMailStoreroomResources(&payload, client); err != nil {
 		t.Fatalf("WithdrawMailStoreroomResources failed: %v", err)
@@ -149,10 +153,10 @@ func TestWithdrawMailStoreroomResourcesSuccess(t *testing.T) {
 	if client.Commander.GetResourceCount(mailStoreroomStoredGoldResource) != 400 {
 		t.Fatalf("expected stored gold decremented")
 	}
-	if client.Commander.GetResourceCount(mailStoreroomOilResourceID) != 2200 {
+	if client.Commander.GetResourceCount(mailStoreroomOilResourceID) != startActiveOil+200 {
 		t.Fatalf("expected active oil incremented")
 	}
-	if client.Commander.GetResourceCount(mailStoreroomGoldResourceID) != 1100 {
+	if client.Commander.GetResourceCount(mailStoreroomGoldResourceID) != startActiveGold+100 {
 		t.Fatalf("expected active gold incremented")
 	}
 }
@@ -167,6 +171,10 @@ func TestWithdrawMailStoreroomResourcesCapFailureDoesNotMutate(t *testing.T) {
 	if err := client.Commander.SetResource(mailStoreroomStoredGoldResource, 500); err != nil {
 		t.Fatalf("seed stored gold: %v", err)
 	}
+	startActiveOil := client.Commander.GetResourceCount(mailStoreroomOilResourceID)
+	startActiveGold := client.Commander.GetResourceCount(mailStoreroomGoldResourceID)
+	seedConfigEntry(t, "ShareCfg/gameset.json", "max_oil", fmt.Sprintf(`{"key_value":%d,"description":""}`, startActiveOil+50))
+	seedConfigEntry(t, "ShareCfg/gameset.json", "max_gold", fmt.Sprintf(`{"key_value":%d,"description":""}`, startActiveGold+50))
 
 	payload := marshalPacketRequest(t, &protobuf.CS_30012{Oil: proto.Uint32(100), Gold: proto.Uint32(100)})
 	if _, _, err := WithdrawMailStoreroomResources(&payload, client); err != nil {
@@ -191,6 +199,7 @@ func TestWithdrawMailStoreroomResourcesSingleResourceWithoutPeerRow(t *testing.T
 	if err := client.Commander.SetResource(mailStoreroomStoredOilResource, 500); err != nil {
 		t.Fatalf("seed stored oil: %v", err)
 	}
+	startActiveOil := client.Commander.GetResourceCount(mailStoreroomOilResourceID)
 
 	execAnswerTestSQLT(t, "DELETE FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(client.Commander.CommanderID), int64(mailStoreroomStoredGoldResource))
 
@@ -207,7 +216,7 @@ func TestWithdrawMailStoreroomResourcesSingleResourceWithoutPeerRow(t *testing.T
 	if client.Commander.GetResourceCount(mailStoreroomStoredOilResource) != 300 {
 		t.Fatalf("expected stored oil decremented")
 	}
-	if client.Commander.GetResourceCount(mailStoreroomOilResourceID) != 2200 {
+	if client.Commander.GetResourceCount(mailStoreroomOilResourceID) != startActiveOil+200 {
 		t.Fatalf("expected active oil incremented")
 	}
 }
