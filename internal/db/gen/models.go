@@ -702,6 +702,20 @@ type Fleet struct {
 	MeowfficerList []byte
 }
 
+type FriendDirectMessage struct {
+	ID         int64
+	SenderID   int64
+	ReceiverID int64
+	Content    string
+	CreatedAt  int64
+}
+
+type FriendRelationship struct {
+	CommanderID int64
+	FriendID    int64
+	CreatedAt   int64
+}
+
 type GameRoomScore struct {
 	CommanderID int64
 	RoomID      int64
@@ -1455,6 +1469,15 @@ type Permission struct {
 	Description string
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+type PlayerInform struct {
+	ID         int64
+	ReporterID int64
+	TargetID   int64
+	Info       string
+	Content    string
+	CreatedAt  int64
 }
 
 type Punishment struct {
