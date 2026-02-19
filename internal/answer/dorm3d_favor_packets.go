@@ -1,12 +1,16 @@
 package answer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/ggmolly/belfast/internal/connection"
+	"github.com/ggmolly/belfast/internal/consts"
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
@@ -131,47 +135,52 @@ func Dorm3dApartmentLevelUp(buffer *[]byte, client *connection.Client) (int, int
 	if shipGroup == 0 {
 		return sendDorm3dApartmentLevelUpResult(client, dorm3dResultFailure, []*protobuf.DROPINFO{})
 	}
-	apartment, err := orm.GetOrCreateDorm3dApartment(client.Commander.CommanderID)
-	if err != nil {
-		return 0, 28006, err
-	}
-	ship := apartment.FindShip(shipGroup)
-	if ship == nil {
-		return sendDorm3dApartmentLevelUpResult(client, dorm3dResultFailure, []*protobuf.DROPINFO{})
-	}
 	maxLevel, err := loadDorm3dSetInt("favor_level")
 	if err != nil {
 		return 0, 28006, err
-	}
-	if ship.FavorLv >= maxLevel {
-		return sendDorm3dApartmentLevelUpResult(client, dorm3dResultFailure, []*protobuf.DROPINFO{})
 	}
 	charID, err := resolveDorm3dCharID(shipGroup)
 	if err != nil {
 		return 0, 28006, err
 	}
-	nextLevel := ship.FavorLv + 1
-	nextFavorCfg, err := loadDorm3dFavorLevelConfig(charID, nextLevel)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
+	var drops []*protobuf.DROPINFO
+	ctx := context.Background()
+	if err := orm.WithPGXTx(ctx, func(tx pgx.Tx) error {
+		apartment, txErr := orm.GetOrCreateDorm3dApartmentTx(ctx, tx, client.Commander.CommanderID)
+		if txErr != nil {
+			return txErr
+		}
+		ship := apartment.FindShip(shipGroup)
+		if ship == nil {
+			return errDorm3dBusinessFailed
+		}
+		if ship.FavorLv >= maxLevel {
+			return errDorm3dBusinessFailed
+		}
+		nextLevel := ship.FavorLv + 1
+		nextFavorCfg, txErr := loadDorm3dFavorLevelConfig(charID, nextLevel)
+		if txErr != nil {
+			if errors.Is(txErr, db.ErrNotFound) {
+				return errDorm3dBusinessFailed
+			}
+			return txErr
+		}
+		if ship.FavorExp < nextFavorCfg.FavorExp {
+			return errDorm3dBusinessFailed
+		}
+		ship.FavorLv = nextLevel
+		ship.FavorExp -= nextFavorCfg.FavorExp
+
+		drops, txErr = grantDorm3dLevelUpDropsTx(ctx, tx, client.Commander, nextFavorCfg.LevelupItem)
+		if txErr != nil {
+			return txErr
+		}
+		return orm.SaveDorm3dApartmentTx(ctx, tx, apartment)
+	}); err != nil {
+		if errors.Is(err, errDorm3dBusinessFailed) {
 			return sendDorm3dApartmentLevelUpResult(client, dorm3dResultFailure, []*protobuf.DROPINFO{})
 		}
 		return 0, 28006, err
-	}
-	if ship.FavorExp < nextFavorCfg.FavorExp {
-		return sendDorm3dApartmentLevelUpResult(client, dorm3dResultFailure, []*protobuf.DROPINFO{})
-	}
-	ship.FavorLv = nextLevel
-	ship.FavorExp -= nextFavorCfg.FavorExp
-	if err := orm.SaveDorm3dApartment(apartment); err != nil {
-		return 0, 28006, err
-	}
-	drops := make([]*protobuf.DROPINFO, 0, len(nextFavorCfg.LevelupItem))
-	for _, tuple := range nextFavorCfg.LevelupItem {
-		if len(tuple) < 3 || tuple[2] == 0 {
-			continue
-		}
-		drops = append(drops, newDropInfo(tuple[0], tuple[1], tuple[2]))
 	}
 	return sendDorm3dApartmentLevelUpResult(client, dorm3dResultSuccess, drops)
 }
@@ -238,7 +247,7 @@ func HandleDorm3dGiveGift(buffer *[]byte, client *connection.Client) (int, int, 
 		if giftCfg.ShipGroupID != 0 && giftCfg.ShipGroupID != shipGroup {
 			return sendDorm3dGiveGiftResult(client, dorm3dResultFailure)
 		}
-		if giftCfg.ShipGroupID != 0 && giftState.UsedNumber > 0 {
+		if giftCfg.ShipGroupID != 0 && (giftState.UsedNumber > 0 || requested > 1) {
 			return sendDorm3dGiveGiftResult(client, dorm3dResultFailure)
 		}
 		if giftCfg.FavorTriggerID == 0 {
@@ -283,6 +292,34 @@ func sendDorm3dApartmentLevelUpResult(client *connection.Client, result uint32, 
 
 func sendDorm3dGiveGiftResult(client *connection.Client, result uint32) (int, int, error) {
 	return client.SendMessage(28010, &protobuf.SC_28010{Result: proto.Uint32(result)})
+}
+
+var errDorm3dBusinessFailed = errors.New("dorm3d business validation failed")
+
+func grantDorm3dLevelUpDropsTx(ctx context.Context, tx pgx.Tx, commander *orm.Commander, tuples [][]uint32) ([]*protobuf.DROPINFO, error) {
+	drops := make([]*protobuf.DROPINFO, 0, len(tuples))
+	for _, tuple := range tuples {
+		if len(tuple) < 3 || tuple[2] == 0 {
+			continue
+		}
+		dropType := tuple[0]
+		dropID := tuple[1]
+		count := tuple[2]
+		switch dropType {
+		case consts.DROP_TYPE_RESOURCE:
+			if err := commander.AddResourceTx(ctx, tx, dropID, count); err != nil {
+				return nil, err
+			}
+		case consts.DROP_TYPE_ITEM:
+			if err := commander.AddItemTx(ctx, tx, dropID, count); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unsupported dorm3d reward type %d", dropType)
+		}
+		drops = append(drops, newDropInfo(dropType, dropID, count))
+	}
+	return drops, nil
 }
 
 func loadDorm3dGiftConfig(giftID uint32) (*dorm3dGiftConfig, error) {

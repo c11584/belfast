@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/db/gen"
 )
@@ -350,6 +352,98 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ins,
 	)
 	return err
+}
+
+func GetDorm3dApartmentTx(ctx context.Context, tx pgx.Tx, commanderID uint32) (*Dorm3dApartment, error) {
+	row := tx.QueryRow(ctx, `
+SELECT commander_id,
+       daily_vigor_max,
+       gifts,
+       ships,
+       gift_daily,
+       gift_permanent,
+       furniture_daily,
+       furniture_permanent,
+       rooms,
+       ins
+FROM dorm3d_apartments
+WHERE commander_id = $1
+FOR UPDATE
+`, int64(commanderID))
+	apartment, err := scanDorm3dApartment(row)
+	err = db.MapNotFound(err)
+	if err != nil {
+		return nil, err
+	}
+	apartment.EnsureDefaults()
+	return &apartment, nil
+}
+
+func GetOrCreateDorm3dApartmentTx(ctx context.Context, tx pgx.Tx, commanderID uint32) (*Dorm3dApartment, error) {
+	apartment, err := GetDorm3dApartmentTx(ctx, tx, commanderID)
+	if err == nil {
+		return apartment, nil
+	}
+	if !errors.Is(err, db.ErrNotFound) {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `
+INSERT INTO dorm3d_apartments (commander_id)
+VALUES ($1)
+ON CONFLICT (commander_id) DO NOTHING
+`, int64(commanderID)); err != nil {
+		return nil, err
+	}
+	return GetDorm3dApartmentTx(ctx, tx, commanderID)
+}
+
+func SaveDorm3dApartmentTx(ctx context.Context, tx pgx.Tx, apartment *Dorm3dApartment) error {
+	apartment.EnsureDefaults()
+	query := db.DefaultStore.Queries.WithTx(tx)
+	gifts, err := marshalDorm3dJSONB(apartment.Gifts)
+	if err != nil {
+		return err
+	}
+	ships, err := marshalDorm3dJSONB(apartment.Ships)
+	if err != nil {
+		return err
+	}
+	giftDaily, err := marshalDorm3dJSONB(apartment.GiftDaily)
+	if err != nil {
+		return err
+	}
+	giftPermanent, err := marshalDorm3dJSONB(apartment.GiftPermanent)
+	if err != nil {
+		return err
+	}
+	furnitureDaily, err := marshalDorm3dJSONB(apartment.FurnitureDaily)
+	if err != nil {
+		return err
+	}
+	furniturePermanent, err := marshalDorm3dJSONB(apartment.FurniturePermanent)
+	if err != nil {
+		return err
+	}
+	rooms, err := marshalDorm3dJSONB(apartment.Rooms)
+	if err != nil {
+		return err
+	}
+	ins, err := marshalDorm3dJSONB(apartment.Ins)
+	if err != nil {
+		return err
+	}
+	return query.UpsertDorm3dApartment(ctx, gen.UpsertDorm3dApartmentParams{
+		CommanderID:        int64(apartment.CommanderID),
+		DailyVigorMax:      int64(apartment.DailyVigorMax),
+		Gifts:              gifts,
+		Ships:              ships,
+		GiftDaily:          giftDaily,
+		GiftPermanent:      giftPermanent,
+		FurnitureDaily:     furnitureDaily,
+		FurniturePermanent: furniturePermanent,
+		Rooms:              rooms,
+		Ins:                ins,
+	})
 }
 
 func scanDorm3dApartment(scanner rowScanner) (Dorm3dApartment, error) {

@@ -219,6 +219,14 @@ func TestDorm3dApartmentLevelUpSuccessReturnsDrops(t *testing.T) {
 	if err := orm.CreateDorm3dApartment(&apartment); err != nil {
 		t.Fatalf("failed to seed apartment: %v", err)
 	}
+	beforeGold := uint32(0)
+	if res, ok := client.Commander.OwnedResourcesMap[1]; ok {
+		beforeGold = res.Amount
+	}
+	beforeItem := uint32(0)
+	if item, ok := client.Commander.CommanderItemsMap[1001]; ok {
+		beforeItem = item.Count
+	}
 
 	payload := &protobuf.CS_28005{ShipGroup: proto.Uint32(7005)}
 	buffer, err := proto.Marshal(payload)
@@ -245,6 +253,61 @@ func TestDorm3dApartmentLevelUpSuccessReturnsDrops(t *testing.T) {
 	ship := updated.Ships[0]
 	if ship.FavorLv != 2 || ship.FavorExp != 10 {
 		t.Fatalf("expected level 2 with exp 10, got level=%d exp=%d", ship.FavorLv, ship.FavorExp)
+	}
+	afterGold := uint32(0)
+	if res, ok := client.Commander.OwnedResourcesMap[1]; ok {
+		afterGold = res.Amount
+	}
+	if afterGold != beforeGold+5 {
+		t.Fatalf("expected +5 resource reward, got %d", afterGold)
+	}
+	afterItem := uint32(0)
+	if item, ok := client.Commander.CommanderItemsMap[1001]; ok {
+		afterItem = item.Count
+	}
+	if afterItem != beforeItem+3 {
+		t.Fatalf("expected +3 item reward, got %d", afterItem)
+	}
+}
+
+func TestDorm3dGiveGiftFailsDedicatedGiftBulkRequest(t *testing.T) {
+	client := setupDorm3dPacketClient(t, 9207)
+	seedDorm3dConfig(t, "ShareCfg/dorm3d_set.json", "daily_vigor_max", `{"key":"daily_vigor_max","key_value_int":3}`)
+	seedDorm3dConfig(t, "ShareCfg/dorm3d_set.json", "favor_level", `{"key":"favor_level","key_value_int":5}`)
+	seedDorm3dConfig(t, "ShareCfg/dorm3d_favor.json", "7007_5", `{"id":1005,"char_id":7007,"level":5,"favor_exp":9999,"levelup_item":[]}`)
+	seedDorm3dConfig(t, "ShareCfg/dorm3d_gift.json", "5007", `{"id":5007,"ship_group_id":7007,"favor_trigger_id":0}`)
+
+	apartment := orm.NewDorm3dApartment(client.Commander.CommanderID)
+	apartment.Gifts = orm.Dorm3dGiftList{{GiftID: 5007, Number: 2, UsedNumber: 0}}
+	apartment.Ships = orm.Dorm3dShipList{{ShipGroup: 7007, FavorLv: 1, FavorExp: 20, RegularTrigger: []uint32{}}}
+	if err := orm.CreateDorm3dApartment(&apartment); err != nil {
+		t.Fatalf("failed to seed apartment: %v", err)
+	}
+
+	payload := &protobuf.CS_28009{
+		ShipGroup: proto.Uint32(7007),
+		Gifts:     []*protobuf.APARTMENT_GIVE_GIFT{{GiftId: proto.Uint32(5007), Number: proto.Uint32(2)}},
+	}
+	buffer, err := proto.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+	if _, _, err := answer.HandleDorm3dGiveGift(&buffer, client); err != nil {
+		t.Fatalf("HandleDorm3dGiveGift failed: %v", err)
+	}
+
+	response := &protobuf.SC_28010{}
+	decodeTestPacket(t, client, 28010, response)
+	if response.GetResult() == 0 {
+		t.Fatalf("expected non-zero result for dedicated bulk gift")
+	}
+
+	updated, err := orm.GetDorm3dApartment(client.Commander.CommanderID)
+	if err != nil {
+		t.Fatalf("failed to load apartment: %v", err)
+	}
+	if updated.Gifts[0].Number != 2 || updated.Gifts[0].UsedNumber != 0 {
+		t.Fatalf("expected unchanged gift counters, got %+v", updated.Gifts[0])
 	}
 }
 
