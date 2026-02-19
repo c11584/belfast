@@ -702,6 +702,20 @@ type Fleet struct {
 	MeowfficerList []byte
 }
 
+type FriendLink struct {
+	CommanderID int64
+	FriendID    int64
+	CreatedAt   pgtype.Timestamp
+}
+
+type FriendRequest struct {
+	ID          int64
+	RequesterID int64
+	TargetID    int64
+	Content     string
+	CreatedAt   pgtype.Timestamp
+}
+
 type FriendDirectMessage struct {
 	ID         int64
 	SenderID   int64
