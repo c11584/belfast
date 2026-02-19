@@ -423,15 +423,20 @@ func WorldTriggerTask(buffer *[]byte, client *connection.Client) (int, int, erro
 		if err != nil && !errors.Is(err, db.ErrNotFound) {
 			return err
 		}
-		if err == nil && existing.SubmitTime == 0 {
+		if err == nil && existing != nil {
 			return errWorldTaskRefused
 		}
-		_, err = tx.Exec(ctx, `
+		result, err := tx.Exec(ctx, `
 INSERT INTO commander_tasks (commander_id, task_id, progress, accept_time, submit_time)
 VALUES ($1, $2, 0, $3, 0)
-ON CONFLICT (commander_id, task_id)
-DO UPDATE SET progress = 0, accept_time = EXCLUDED.accept_time, submit_time = 0
+ON CONFLICT (commander_id, task_id) DO NOTHING
 `, int64(client.Commander.CommanderID), int64(payload.GetTaskId()), int64(now))
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() == 0 {
+			return errWorldTaskRefused
+		}
 		return err
 	})
 	if err != nil {

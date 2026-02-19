@@ -290,6 +290,16 @@ func TestWorldTaskTriggerAndSubmitFlow(t *testing.T) {
 		t.Fatalf("expected duplicate submit to fail")
 	}
 
+	client.Buffer.Reset()
+	if _, _, err := WorldTriggerTask(&triggerBuf, client); err != nil {
+		t.Fatalf("WorldTriggerTask retrigger failed: %v", err)
+	}
+	var retriggerResponse protobuf.SC_33206
+	decodePacketAt(t, client, 0, 33206, &retriggerResponse)
+	if retriggerResponse.GetResult() != worldResultTaskRefused {
+		t.Fatalf("expected retrigger of submitted task to be refused")
+	}
+
 	if count := client.Commander.GetItemCount(1001); count != 3 {
 		t.Fatalf("expected granted world task item reward")
 	}
