@@ -74,6 +74,9 @@ func WorldItemUse(buffer *[]byte, client *connection.Client) (int, int, error) {
 	if err != nil {
 		return connection.SendProtoMessage(33302, client, response)
 	}
+	if err := client.Commander.Load(); err != nil {
+		return connection.SendProtoMessage(33302, client, response)
+	}
 
 	response.Result = proto.Uint32(worldItemUseResultSuccess)
 	response.DropList = dropMapToSortedList(drops)

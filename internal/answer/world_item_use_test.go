@@ -39,6 +39,9 @@ func TestWorldItemUseConsumesRecoverAPItem(t *testing.T) {
 	if remaining != 1 {
 		t.Fatalf("expected remaining item count 1, got %d", remaining)
 	}
+	if client.Commander.GetItemCount(251) != 1 {
+		t.Fatalf("expected in-memory item count to be refreshed")
+	}
 }
 
 func TestWorldItemUseFailurePaths(t *testing.T) {
