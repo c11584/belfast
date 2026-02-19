@@ -229,7 +229,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(33409, []packets.PacketHandler{answer.WorldFleetRedeploy})
 	packets.RegisterPacketHandler(33413, []packets.PacketHandler{answer.WorldDailyTaskRefresh})
 	packets.RegisterPacketHandler(33415, []packets.PacketHandler{answer.WorldTriggerDailyTask})
-	packets.RegisterPacketHandler(33509, []packets.PacketHandler{answer.WorldBossSupport})
+	packets.RegisterPacketHandler(33509, []packets.PacketHandler{answer.WorldChunk3BossSupport})
 	packets.RegisterPacketHandler(33602, []packets.PacketHandler{answer.WorldAchieveClaim})
 	packets.RegisterPacketHandler(33301, []packets.PacketHandler{answer.WorldItemUse})
 	packets.RegisterPacketHandler(10994, []packets.PacketHandler{answer.CheaterMark})
