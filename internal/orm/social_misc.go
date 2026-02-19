@@ -130,3 +130,37 @@ RETURNING id
 	}
 	return entry, nil
 }
+
+func LoadCommanderSocialDisplay(commanderID uint32) (*Commander, error) {
+	var commander Commander
+	var level int64
+	err := db.DefaultStore.Pool.QueryRow(context.Background(), `
+SELECT
+  commander_id,
+  name,
+  level,
+  display_icon_id,
+  display_skin_id,
+  selected_icon_frame_id,
+  selected_chat_frame_id,
+  display_icon_theme_id
+FROM commanders
+WHERE commander_id = $1
+  AND deleted_at IS NULL
+`, int64(commanderID)).Scan(
+		&commander.CommanderID,
+		&commander.Name,
+		&level,
+		&commander.DisplayIconID,
+		&commander.DisplaySkinID,
+		&commander.SelectedIconFrameID,
+		&commander.SelectedChatFrameID,
+		&commander.DisplayIconThemeID,
+	)
+	err = db.MapNotFound(err)
+	if err != nil {
+		return nil, err
+	}
+	commander.Level = int(level)
+	return &commander, nil
+}

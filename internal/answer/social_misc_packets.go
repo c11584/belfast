@@ -1,10 +1,12 @@
 package answer
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ggmolly/belfast/internal/connection"
+	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
@@ -81,8 +83,11 @@ func GetThemeTemplatePlayerInfo(buffer *[]byte, client *connection.Client) (int,
 		return 0, 50114, fmt.Errorf("invalid CS_50113 packet: %w", err)
 	}
 
-	commander, err := orm.LoadCommanderWithDetails(request.GetUserId())
+	commander, err := orm.LoadCommanderSocialDisplay(request.GetUserId())
 	if err != nil {
+		if !errors.Is(err, db.ErrNotFound) {
+			return 0, 50114, err
+		}
 		response := protobuf.SC_50114{
 			Result: proto.Uint32(1),
 			Player: emptySocialPlayerInfo(),
@@ -92,7 +97,7 @@ func GetThemeTemplatePlayerInfo(buffer *[]byte, client *connection.Client) (int,
 
 	response := protobuf.SC_50114{
 		Result: proto.Uint32(0),
-		Player: buildSocialPlayerInfo(&commander),
+		Player: buildSocialPlayerInfo(commander),
 	}
 	return client.SendMessage(50114, &response)
 }
