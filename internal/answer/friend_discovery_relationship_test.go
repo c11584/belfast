@@ -116,6 +116,9 @@ func TestFriendSearchListAndBatchLookup(t *testing.T) {
 	client := setupHandlerCommander(t)
 	firstProfile := seedSocialCommander(t, 910101, "List One")
 	secondProfile := seedSocialCommander(t, 910102, "List Two")
+	if err := orm.CreateCommanderFriendRelationPair(client.Commander.CommanderID, firstProfile.CommanderID); err != nil {
+		t.Fatalf("seed existing friend relation: %v", err)
+	}
 
 	listRequest := &protobuf.CS_50014{Type: proto.Uint32(0)}
 	listBuffer, err := proto.Marshal(listRequest)
@@ -127,8 +130,13 @@ func TestFriendSearchListAndBatchLookup(t *testing.T) {
 		t.Fatalf("FriendSearchList failed: %v", err)
 	}
 	listResponse := decodeSinglePacket(t, client, 50015, &protobuf.SC_50015{})
-	if len(listResponse.GetPlayerList()) < 2 {
-		t.Fatalf("expected at least 2 recommendation entries, got %d", len(listResponse.GetPlayerList()))
+	if len(listResponse.GetPlayerList()) == 0 {
+		t.Fatalf("expected at least one recommendation entry")
+	}
+	for _, player := range listResponse.GetPlayerList() {
+		if player.GetId() == firstProfile.CommanderID {
+			t.Fatalf("did not expect existing friend %d in recommendation list", firstProfile.CommanderID)
+		}
 	}
 
 	batchRequest := &protobuf.CS_50018{UserIdList: []uint32{firstProfile.CommanderID, 999999, secondProfile.CommanderID}}
@@ -155,6 +163,12 @@ func TestFriendSearchListAndBatchLookup(t *testing.T) {
 func TestDeleteFriendSuccessAndFriendListHydration(t *testing.T) {
 	client := setupHandlerCommander(t)
 	targetProfile := seedSocialCommander(t, 910201, "Delete Friend")
+	targetCommander := orm.Commander{CommanderID: targetProfile.CommanderID}
+	if err := targetCommander.Load(); err != nil {
+		t.Fatalf("load target commander: %v", err)
+	}
+	targetClient := &connection.Client{Commander: &targetCommander, Hash: targetProfile.CommanderID}
+	client.Server.AddClient(targetClient)
 
 	if err := orm.CreateCommanderFriendRelationPair(client.Commander.CommanderID, targetProfile.CommanderID); err != nil {
 		t.Fatalf("seed friend relation: %v", err)
@@ -177,6 +191,10 @@ func TestDeleteFriendSuccessAndFriendListHydration(t *testing.T) {
 	notify := decodeSinglePacket(t, client, 50013, &protobuf.SC_50013{})
 	if notify.GetId() != targetProfile.CommanderID {
 		t.Fatalf("expected notify id %d, got %d", targetProfile.CommanderID, notify.GetId())
+	}
+	peerNotify := decodeSinglePacket(t, targetClient, 50013, &protobuf.SC_50013{})
+	if peerNotify.GetId() != client.Commander.CommanderID {
+		t.Fatalf("expected peer notify id %d, got %d", client.Commander.CommanderID, peerNotify.GetId())
 	}
 
 	requestListBuffer := []byte{}

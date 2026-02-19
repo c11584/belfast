@@ -145,8 +145,12 @@ SELECT
 	0,
 	0
 FROM commanders c
+LEFT JOIN commander_friend_relations cfr
+  ON cfr.commander_id = $1
+ AND cfr.friend_commander_id = c.commander_id
 WHERE c.commander_id <> $1
   AND c.deleted_at IS NULL
+  AND cfr.friend_commander_id IS NULL
 ORDER BY c.last_login DESC
 LIMIT $2
 `, int64(excludeCommanderID), limit)

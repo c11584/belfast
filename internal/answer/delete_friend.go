@@ -33,5 +33,16 @@ func DeleteFriend(buffer *[]byte, client *connection.Client) (int, int, error) {
 	}
 
 	push := &protobuf.SC_50013{Id: proto.Uint32(targetCommanderID)}
-	return client.SendMessage(50013, push)
+	if _, _, err := client.SendMessage(50013, push); err != nil {
+		return 0, 50013, err
+	}
+
+	if client.Server != nil {
+		if targetClient, ok := client.Server.FindClientByCommander(targetCommanderID); ok {
+			peerPush := &protobuf.SC_50013{Id: proto.Uint32(client.Commander.CommanderID)}
+			_, _, _ = targetClient.SendMessage(50013, peerPush)
+		}
+	}
+
+	return 0, 50013, nil
 }
