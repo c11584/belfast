@@ -329,6 +329,12 @@ type CommanderDormTheme struct {
 	FurniturePutList []byte
 }
 
+type CommanderFriendRelation struct {
+	CommanderID       int64
+	FriendCommanderID int64
+	CreatedAt         pgtype.Timestamptz
+}
+
 type CommanderFurniture struct {
 	CommanderID int64
 	FurnitureID int64
