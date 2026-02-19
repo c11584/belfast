@@ -179,6 +179,50 @@ func TestWorldPortRequestAndShopping(t *testing.T) {
 	}
 }
 
+func TestWorldPortShoppingDoesNotRestockSoldOutGoods(t *testing.T) {
+	client := setupWorldChunk3Client(900007)
+
+	request := &protobuf.CS_33401{MapId: proto.Uint32(88)}
+	requestBuf, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal request payload: %v", err)
+	}
+	if _, _, err := WorldPortRequest(&requestBuf, client); err != nil {
+		t.Fatalf("WorldPortRequest failed: %v", err)
+	}
+	requestResponse := &protobuf.SC_33402{}
+	decodeChunk3Response(t, client, 33402, requestResponse)
+
+	goodsID := requestResponse.GetPort().GetGoodsList()[0].GetGoodsId()
+	buyAll := &protobuf.CS_33403{ShopId: proto.Uint32(goodsID), ShopType: proto.Uint32(1), Count: proto.Uint32(worldChunk3PortGoodsDefault)}
+	buyAllBuf, err := proto.Marshal(buyAll)
+	if err != nil {
+		t.Fatalf("marshal buy-all payload: %v", err)
+	}
+	if _, _, err := WorldPortShopping(&buyAllBuf, client); err != nil {
+		t.Fatalf("WorldPortShopping buy-all failed: %v", err)
+	}
+	buyAllResp := &protobuf.SC_33404{}
+	decodeChunk3Response(t, client, 33404, buyAllResp)
+	if buyAllResp.GetResult() != 0 {
+		t.Fatalf("expected buy-all success")
+	}
+
+	buyAgain := &protobuf.CS_33403{ShopId: proto.Uint32(goodsID), ShopType: proto.Uint32(1), Count: proto.Uint32(1)}
+	buyAgainBuf, err := proto.Marshal(buyAgain)
+	if err != nil {
+		t.Fatalf("marshal buy-again payload: %v", err)
+	}
+	if _, _, err := WorldPortShopping(&buyAgainBuf, client); err != nil {
+		t.Fatalf("WorldPortShopping buy-again failed: %v", err)
+	}
+	buyAgainResp := &protobuf.SC_33404{}
+	decodeChunk3Response(t, client, 33404, buyAgainResp)
+	if buyAgainResp.GetResult() == 0 {
+		t.Fatalf("expected sold-out purchase to fail")
+	}
+}
+
 func TestWorldFleetHandlers(t *testing.T) {
 	client := setupWorldChunk3Client(900004)
 

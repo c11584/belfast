@@ -119,8 +119,8 @@ func WorldPortShopping(buffer *[]byte, client *connection.Client) (int, int, err
 
 	worldChunk3StateMu.Lock()
 	state := worldChunk3CommanderState(client.Commander.CommanderID)
-	remaining := state.shopGoodsCounts[payload.GetShopId()]
-	if remaining == 0 {
+	remaining, exists := state.shopGoodsCounts[payload.GetShopId()]
+	if !exists {
 		remaining = worldChunk3PortGoodsDefault
 	}
 	if payload.GetCount() > remaining {
