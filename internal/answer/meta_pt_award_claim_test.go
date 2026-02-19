@@ -153,7 +153,7 @@ func TestClaimMetaPtAwardConcurrentSingleSuccess(t *testing.T) {
 	clientA := mustLoadMetaPtCommanderClient(t, baseClient.Commander.CommanderID)
 	clientB := mustLoadMetaPtCommanderClient(t, baseClient.Commander.CommanderID)
 	payload := marshalPacketRequest(t, &protobuf.CS_34003{GroupId: proto.Uint32(970108), TargetPt: proto.Uint32(100)})
-	startingGold := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(baseClient.Commander.CommanderID), int64(1))
+	startingGold := int64(baseClient.Commander.GetResourceCount(1))
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -190,7 +190,10 @@ func TestClaimMetaPtAwardConcurrentSingleSuccess(t *testing.T) {
 		t.Fatalf("expected exactly one claimed milestone, got %+v", stored.FetchList)
 	}
 
-	gold := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(baseClient.Commander.CommanderID), int64(1))
+	if err := baseClient.Commander.Load(); err != nil {
+		t.Fatalf("reload commander: %v", err)
+	}
+	gold := int64(baseClient.Commander.GetResourceCount(1))
 	if gold != startingGold+100 {
 		t.Fatalf("expected gold to increase once by 100, start=%d got=%d", startingGold, gold)
 	}
