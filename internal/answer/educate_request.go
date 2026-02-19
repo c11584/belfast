@@ -52,5 +52,10 @@ func EducateRequest(buffer *[]byte, client *connection.Client) (int, int, error)
 			IsSpecialSecretaryValid: proto.Uint32(0),
 		},
 	}
+	if client.Commander != nil {
+		if err := populateEducateSnapshot(client.Commander.CommanderID, response.Child); err != nil {
+			return 0, 27001, err
+		}
+	}
 	return client.SendMessage(27001, &response)
 }
