@@ -14,7 +14,15 @@ import (
 func setupFriendClients(t *testing.T) (*connection.Client, *connection.Client) {
 	t.Helper()
 	requester := setupHandlerCommander(t)
-	target := setupHandlerCommander(t)
+	targetID := uint32(time.Now().UnixNano())
+	if err := orm.CreateCommanderRoot(targetID, targetID, fmt.Sprintf("Target %d", targetID), 0, 0); err != nil {
+		t.Fatalf("create target commander: %v", err)
+	}
+	targetCommander := orm.Commander{CommanderID: targetID}
+	if err := targetCommander.Load(); err != nil {
+		t.Fatalf("load target commander: %v", err)
+	}
+	target := &connection.Client{Commander: &targetCommander}
 	server := connection.NewServer("127.0.0.1", 0, nil)
 	requester.Server = server
 	target.Server = server
