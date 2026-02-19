@@ -239,6 +239,7 @@ type Commander struct {
 	RandomShipMode          int64
 	RandomFlagShipEnabled   bool
 	DeletedAt               pgtype.Timestamptz
+	ChildDisplay            int64
 }
 
 type CommanderActivityTask struct {
@@ -567,6 +568,15 @@ type Dorm3dApartment struct {
 	FurniturePermanent []byte
 	Rooms              []byte
 	Ins                []byte
+}
+
+type EducateShopState struct {
+	CommanderID int64
+	ShopID      int64
+	RefreshKey  int64
+	Goods       []byte
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type EquipCodeLike struct {
