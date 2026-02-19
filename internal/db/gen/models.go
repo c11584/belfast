@@ -570,6 +570,15 @@ type Dorm3dApartment struct {
 	Ins                []byte
 }
 
+type EducateShopState struct {
+	CommanderID int64
+	ShopID      int64
+	RefreshKey  int64
+	Goods       []byte
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type EquipCodeLike struct {
 	ID          int64
 	CommanderID int64
