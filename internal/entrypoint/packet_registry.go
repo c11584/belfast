@@ -232,6 +232,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(33415, []packets.PacketHandler{answer.WorldTriggerDailyTask})
 	packets.RegisterPacketHandler(33509, []packets.PacketHandler{answer.WorldChunk3BossSupport})
 	packets.RegisterPacketHandler(33602, []packets.PacketHandler{answer.WorldAchieveClaim})
+	packets.RegisterPacketHandler(33301, []packets.PacketHandler{answer.WorldItemUse})
 	packets.RegisterPacketHandler(10994, []packets.PacketHandler{answer.CheaterMark})
 	packets.RegisterPacketHandler(10996, []packets.PacketHandler{answer.VersionCheck})
 	packets.RegisterPacketHandler(29001, []packets.PacketHandler{answer.NewEducateRequest})
