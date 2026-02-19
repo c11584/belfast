@@ -10,6 +10,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ggmolly/belfast/internal/connection"
+	"github.com/ggmolly/belfast/internal/consts"
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
@@ -235,6 +237,28 @@ func toChildDrop(drop []int) *protobuf.CHILD_DROP {
 		Type:   proto.Uint32(uint32(drop[0])),
 		Id:     proto.Uint32(uint32(drop[1])),
 		Number: proto.Int32(n),
+	}
+}
+
+func applyEducateChildDrop(client *connection.Client, drop *protobuf.CHILD_DROP) error {
+	switch drop.GetType() {
+	case consts.DROP_TYPE_RESOURCE:
+		return client.Commander.AddResource(drop.GetId(), uint32(drop.GetNumber()))
+	case consts.DROP_TYPE_ITEM:
+		return client.Commander.AddItem(drop.GetId(), uint32(drop.GetNumber()))
+	default:
+		return nil
+	}
+}
+
+func applyEducateChildDropTx(ctx context.Context, tx pgx.Tx, client *connection.Client, drop *protobuf.CHILD_DROP) error {
+	switch drop.GetType() {
+	case consts.DROP_TYPE_RESOURCE:
+		return client.Commander.AddResourceTx(ctx, tx, drop.GetId(), uint32(drop.GetNumber()))
+	case consts.DROP_TYPE_ITEM:
+		return client.Commander.AddItemTx(ctx, tx, drop.GetId(), uint32(drop.GetNumber()))
+	default:
+		return nil
 	}
 }
 

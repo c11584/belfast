@@ -35,6 +35,12 @@ func EducateTriggerSpecEvent(buffer *[]byte, client *connection.Client) (int, in
 		return client.SendMessage(27028, response)
 	}
 
+	if drop := toChildDrop(event.DropDisplay); drop != nil {
+		if err := applyEducateChildDrop(client, drop); err != nil {
+			return 0, 27028, err
+		}
+		response.Drops = append(response.Drops, drop)
+	}
 	if err := setEducateFlag(client.Commander.CommanderID, finishFlag); err != nil {
 		return 0, 27028, err
 	}
@@ -42,9 +48,6 @@ func EducateTriggerSpecEvent(buffer *[]byte, client *connection.Client) (int, in
 		if err := setEducateFlag(client.Commander.CommanderID, educateFlagID(educateFlagDiscountBase, payload.GetSpecEventsId())); err != nil {
 			return 0, 27028, err
 		}
-	}
-	if drop := toChildDrop(event.DropDisplay); drop != nil {
-		response.Drops = append(response.Drops, drop)
 	}
 
 	response.Result = proto.Uint32(educateResultOK)

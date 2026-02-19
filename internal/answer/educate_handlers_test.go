@@ -1,8 +1,11 @@
 package answer
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/ggmolly/belfast/internal/connection"
 	"github.com/ggmolly/belfast/internal/orm"
@@ -27,6 +30,16 @@ func setupEducateHandlerTest(t *testing.T, commanderID uint32) *connection.Clien
 		t.Fatalf("load commander: %v", err)
 	}
 	return &connection.Client{Commander: &commander}
+}
+
+func seedCommanderTaskProgress(t *testing.T, commanderID uint32, taskID uint32, progress uint32, target uint32) {
+	t.Helper()
+	err := orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
+		return orm.UpsertCommanderTaskProgressTx(context.Background(), tx, commanderID, taskID, orm.TaskProgressUpdate, progress, target, 1)
+	})
+	if err != nil {
+		t.Fatalf("seed commander task progress: %v", err)
+	}
 }
 
 func TestEducateGetEventsSortedAndConsumedFiltered(t *testing.T) {
@@ -89,7 +102,7 @@ func TestEducateTriggerEventValidationAndSuccess(t *testing.T) {
 
 func TestEducateTriggerSpecEventSuccessDuplicateAndInvalid(t *testing.T) {
 	client := setupEducateHandlerTest(t, 9103)
-	seedConfigEntry(t, "ShareCfg/child_event_special.json", "rows", `[{"id":321,"show":1,"type":3,"drop_display":[3,201,2]}]`)
+	seedConfigEntry(t, "ShareCfg/child_event_special.json", "rows", `[{"id":321,"show":1,"type":3,"drop_display":[2,201,2]}]`)
 
 	buf, _ := proto.Marshal(&protobuf.CS_27027{SpecEventsId: proto.Uint32(321)})
 	if _, _, err := EducateTriggerSpecEvent(&buf, client); err != nil {
@@ -99,6 +112,9 @@ func TestEducateTriggerSpecEventSuccessDuplicateAndInvalid(t *testing.T) {
 	decodePacketAt(t, client, 0, 27028, &resp)
 	if resp.GetResult() != 0 || len(resp.GetDrops()) != 1 || resp.GetDrops()[0].GetId() != 201 {
 		t.Fatalf("unexpected success response: %+v", resp)
+	}
+	if got := client.Commander.GetItemCount(201); got != 2 {
+		t.Fatalf("expected persisted special-event reward item count 2, got %d", got)
 	}
 
 	client.Buffer.Reset()
@@ -155,6 +171,9 @@ func TestEducateShopRequestAndPurchaseFlow(t *testing.T) {
 	if got := client.Commander.GetResourceCount(1); got != 40 {
 		t.Fatalf("expected resource 40, got %d", got)
 	}
+	if got := client.Commander.GetItemCount(500); got != 1 {
+		t.Fatalf("expected purchased item count 1, got %d", got)
+	}
 
 	client.Buffer.Reset()
 	if _, _, err := EducateShopping(&buyBuf, client); err != nil {
@@ -201,8 +220,10 @@ func TestEducateShoppingFailurePathsAndDecodeError(t *testing.T) {
 
 func TestEducateTargetAwardSuccessDuplicateAndFailure(t *testing.T) {
 	client := setupEducateHandlerTest(t, 9106)
-	seedConfigEntry(t, "ShareCfg/child_target_set.json", "rows", `[{"id":1,"stage":1,"ids":[1001,1002],"target_progress":2,"drop_display":[3,201,1]}]`)
+	seedConfigEntry(t, "ShareCfg/child_target_set.json", "rows", `[{"id":1,"stage":1,"ids":[1001,1002],"target_progress":2,"drop_display":[2,201,1]}]`)
 	seedConfigEntry(t, "ShareCfg/child_task.json", "rows", `[{"id":1001,"task_target_progress":1},{"id":1002,"task_target_progress":1}]`)
+	seedCommanderTaskProgress(t, client.Commander.CommanderID, 1001, 1, 1)
+	seedCommanderTaskProgress(t, client.Commander.CommanderID, 1002, 1, 1)
 
 	buf, _ := proto.Marshal(&protobuf.CS_27035{Type: proto.Uint32(0)})
 	if _, _, err := EducateGetTargetAward(&buf, client); err != nil {
@@ -212,6 +233,9 @@ func TestEducateTargetAwardSuccessDuplicateAndFailure(t *testing.T) {
 	decodePacketAt(t, client, 0, 27036, &resp)
 	if resp.GetResult() != 0 || len(resp.GetDrops()) != 1 {
 		t.Fatalf("unexpected success response: %+v", resp)
+	}
+	if got := client.Commander.GetItemCount(201); got != 1 {
+		t.Fatalf("expected persisted target reward item count 1, got %d", got)
 	}
 
 	client.Buffer.Reset()
@@ -234,8 +258,9 @@ func TestEducateTargetAwardSuccessDuplicateAndFailure(t *testing.T) {
 	}
 
 	client2 := setupEducateHandlerTest(t, 9107)
-	seedConfigEntry(t, "ShareCfg/child_target_set.json", "rows", `[{"id":1,"stage":1,"ids":[1001,1002],"target_progress":3,"drop_display":[3,201,1]}]`)
+	seedConfigEntry(t, "ShareCfg/child_target_set.json", "rows", `[{"id":1,"stage":1,"ids":[1001,1002],"target_progress":3,"drop_display":[2,201,1]}]`)
 	seedConfigEntry(t, "ShareCfg/child_task.json", "rows", `[{"id":1001,"task_target_progress":1},{"id":1002,"task_target_progress":1}]`)
+	seedCommanderTaskProgress(t, client2.Commander.CommanderID, 1001, 1, 1)
 	if _, _, err := EducateGetTargetAward(&buf, client2); err != nil {
 		t.Fatalf("EducateGetTargetAward ineligible: %v", err)
 	}

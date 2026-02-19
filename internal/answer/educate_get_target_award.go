@@ -2,6 +2,7 @@ package answer
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
+	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
 )
@@ -35,9 +36,18 @@ func EducateGetTargetAward(buffer *[]byte, client *connection.Client) (int, int,
 		return client.SendMessage(27036, response)
 	}
 
+	taskStates, err := orm.ListCommanderTasks(client.Commander.CommanderID)
+	if err != nil {
+		return 0, 27036, err
+	}
+	taskProgressByID := make(map[uint32]uint32, len(taskStates))
+	for _, state := range taskStates {
+		taskProgressByID[state.TaskID] = state.Progress
+	}
+
 	progress := uint32(0)
 	for _, taskID := range target.IDs {
-		if task, ok := tasks[taskID]; ok {
+		if task, ok := tasks[taskID]; ok && taskProgressByID[taskID] >= task.TaskTargetProgress {
 			progress += task.TaskTargetProgress
 		}
 	}
@@ -45,11 +55,14 @@ func EducateGetTargetAward(buffer *[]byte, client *connection.Client) (int, int,
 		return client.SendMessage(27036, response)
 	}
 
+	if drop := toChildDrop(target.DropDisplay); drop != nil {
+		if err := applyEducateChildDrop(client, drop); err != nil {
+			return 0, 27036, err
+		}
+		response.Drops = append(response.Drops, drop)
+	}
 	if err := setEducateFlag(client.Commander.CommanderID, claimedFlag); err != nil {
 		return 0, 27036, err
-	}
-	if drop := toChildDrop(target.DropDisplay); drop != nil {
-		response.Drops = append(response.Drops, drop)
 	}
 	response.Result = proto.Uint32(educateResultOK)
 	return client.SendMessage(27036, response)

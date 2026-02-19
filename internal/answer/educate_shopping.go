@@ -79,6 +79,11 @@ func EducateShopping(buffer *[]byte, client *connection.Client) (int, int, error
 				return err
 			}
 		}
+		for _, drop := range drops {
+			if err := applyEducateChildDropTx(ctx, tx, client, drop); err != nil {
+				return err
+			}
+		}
 		if err := orm.UpsertEducateShopStateTx(ctx, tx, state); err != nil {
 			return err
 		}
