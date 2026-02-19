@@ -336,6 +336,14 @@ func ChangeEducateCharacter(buffer *[]byte, client *connection.Client) (int, int
 		return client.SendMessage(27042, &response)
 	}
 
+	state, err := orm.GetOrCreateLegacyEducateState(client.Commander.CommanderID)
+	if err != nil {
+		return client.SendMessage(27042, &response)
+	}
+	if !containsUint32(state.Endings, endingID) {
+		return client.SendMessage(27042, &response)
+	}
+
 	if err := orm.UpdateCommanderChildDisplay(client.Commander.CommanderID, endingID); err != nil {
 		return client.SendMessage(27042, &response)
 	}

@@ -223,6 +223,7 @@ func TestEducateExtraAttrAndTaskFlow(t *testing.T) {
 func TestEducateUpgradeFavorAndChangeCharacter(t *testing.T) {
 	client := setupConfigTest(t)
 	seedConfigEntry(t, childDataCategory, "1", `{"id":1,"attr_2_list":[201,202,203],"attr_2_add":5,"favor_level":3}`)
+	seedConfigEntry(t, childEndingCategory, "777", `{"id":777}`)
 	seedConfigEntry(t, secretarySpecialShipCategory, "777", `{"id":777}`)
 
 	upgrade := protobuf.CS_27006{Type: proto.Uint32(0)}
@@ -245,6 +246,13 @@ func TestEducateUpgradeFavorAndChangeCharacter(t *testing.T) {
 		t.Fatalf("expected favor level 3, got %d", requestResp.GetChild().GetFavor().GetLv())
 	}
 
+	triggerEnd := protobuf.CS_27008{EndingId: proto.Uint32(777)}
+	triggerData, _ := proto.Marshal(&triggerEnd)
+	client.Buffer.Reset()
+	if _, _, err := EducateTriggerEnd(&triggerData, client); err != nil {
+		t.Fatalf("trigger educate ending failed: %v", err)
+	}
+
 	change := protobuf.CS_27041{EndingId: proto.Uint32(777)}
 	changeData, _ := proto.Marshal(&change)
 	client.Buffer.Reset()
@@ -265,7 +273,14 @@ func TestEducateUpgradeFavorAndChangeCharacter(t *testing.T) {
 
 func TestPlayerInfoUsesChangedEducateCharacter(t *testing.T) {
 	client := setupPlayerUpdateTest(t)
+	seedConfigEntry(t, childEndingCategory, "555", `{"id":555}`)
 	seedConfigEntry(t, secretarySpecialShipCategory, "555", `{"id":555}`)
+
+	triggerEnd := protobuf.CS_27008{EndingId: proto.Uint32(555)}
+	triggerData, _ := proto.Marshal(&triggerEnd)
+	if _, _, err := EducateTriggerEnd(&triggerData, client); err != nil {
+		t.Fatalf("trigger educate ending failed: %v", err)
+	}
 
 	change := protobuf.CS_27041{EndingId: proto.Uint32(555)}
 	changeData, _ := proto.Marshal(&change)
