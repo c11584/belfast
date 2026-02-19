@@ -546,6 +546,9 @@ func resolveWorldBossStateByBossID(requesterCommanderID uint32, bossID uint32) (
 	if requesterState.SelfBoss != nil && requesterState.SelfBoss.ID == bossID {
 		return requesterState, nil
 	}
+	if len(requesterState.GetRankings(bossID)) > 0 {
+		return requesterState, nil
+	}
 
 	states, err := orm.ListWorldBossStates()
 	if err != nil {
