@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/db/gen"
 )
@@ -230,6 +232,20 @@ func GetOrCreateDorm3dApartment(commanderID uint32) (*Dorm3dApartment, error) {
 func SaveDorm3dApartment(apartment *Dorm3dApartment) error {
 	apartment.EnsureDefaults()
 	ctx := context.Background()
+	return saveDorm3dApartmentWithQueries(ctx, db.DefaultStore.Queries, apartment)
+}
+
+func SaveDorm3dApartmentTx(ctx context.Context, tx pgx.Tx, apartment *Dorm3dApartment) error {
+	apartment.EnsureDefaults()
+	queries := db.DefaultStore.Queries.WithTx(tx)
+	return saveDorm3dApartmentWithQueries(ctx, queries, apartment)
+}
+
+type dorm3dApartmentUpserter interface {
+	UpsertDorm3dApartment(context.Context, gen.UpsertDorm3dApartmentParams) error
+}
+
+func saveDorm3dApartmentWithQueries(ctx context.Context, queries dorm3dApartmentUpserter, apartment *Dorm3dApartment) error {
 	gifts, err := marshalDorm3dJSONB(apartment.Gifts)
 	if err != nil {
 		return err
@@ -262,7 +278,7 @@ func SaveDorm3dApartment(apartment *Dorm3dApartment) error {
 	if err != nil {
 		return err
 	}
-	return db.DefaultStore.Queries.UpsertDorm3dApartment(ctx, gen.UpsertDorm3dApartmentParams{
+	return queries.UpsertDorm3dApartment(ctx, gen.UpsertDorm3dApartmentParams{
 		CommanderID:        int64(apartment.CommanderID),
 		DailyVigorMax:      int64(apartment.DailyVigorMax),
 		Gifts:              gifts,
@@ -274,6 +290,23 @@ func SaveDorm3dApartment(apartment *Dorm3dApartment) error {
 		Rooms:              rooms,
 		Ins:                ins,
 	})
+}
+
+func (apartment *Dorm3dApartment) RoomByID(roomID uint32) *Dorm3dRoom {
+	for i := range apartment.Rooms {
+		if apartment.Rooms[i].ID == roomID {
+			return &apartment.Rooms[i]
+		}
+	}
+	return nil
+}
+
+func (apartment *Dorm3dApartment) AddRoom(room Dorm3dRoom) bool {
+	if apartment.RoomByID(room.ID) != nil {
+		return false
+	}
+	apartment.Rooms = append(apartment.Rooms, room)
+	return true
 }
 
 func DeleteDorm3dApartment(commanderID uint32) error {
