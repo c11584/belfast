@@ -398,6 +398,12 @@ func registerPackets() {
 		response := protobuf.SC_27011{}
 		return c.SendMessage(27011, &response)
 	}})
+	packets.RegisterPacketHandler(27014, []packets.PacketHandler{answer.EducateGetEvents})
+	packets.RegisterPacketHandler(27016, []packets.PacketHandler{answer.EducateTriggerEvent})
+	packets.RegisterPacketHandler(27027, []packets.PacketHandler{answer.EducateTriggerSpecEvent})
+	packets.RegisterPacketHandler(27033, []packets.PacketHandler{answer.EducateShopping})
+	packets.RegisterPacketHandler(27035, []packets.PacketHandler{answer.EducateGetTargetAward})
+	packets.RegisterPacketHandler(27043, []packets.PacketHandler{answer.EducateRequestShopData})
 	packets.RegisterPacketHandler(12102, []packets.PacketHandler{answer.FleetCommit})
 	packets.RegisterPacketHandler(12104, []packets.PacketHandler{answer.FleetRename})
 	packets.RegisterLocalizedPacketHandler(13101, packets.LocalizedHandler{
