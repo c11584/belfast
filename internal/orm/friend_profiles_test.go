@@ -68,6 +68,45 @@ VALUES ($1, $2, 10, 0, $3, $4, 0, 0, '1970-01-01 00:00:00+00', 0, 0, 0, 0, 0, 0,
 	}
 }
 
+func TestGetCommanderSocialProfilesByIDsFiltersMissingAndDeleted(t *testing.T) {
+	initCommanderItemTestDB(t)
+	clearTable(t, &Commander{})
+
+	seedCommander := func(id uint32, name string, deleted bool) {
+		t.Helper()
+		if _, err := db.DefaultStore.Pool.Exec(context.Background(), `
+INSERT INTO commanders (commander_id, account_id, level, exp, name, last_login, guide_index, new_guide_index, name_change_cooldown, room_id, exchange_count, draw_count1, draw_count10, support_requisition_count, support_requisition_month, collect_attack_count, acc_pay_lv, living_area_cover_id, selected_icon_frame_id, selected_chat_frame_id, selected_battle_ui_id, display_icon_id, display_skin_id, display_icon_theme_id, manifesto, dorm_name, random_ship_mode, random_flag_ship_enabled, deleted_at)
+VALUES ($1, $2, 10, 0, $3, $4, 0, 0, '1970-01-01 00:00:00+00', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, false, $5)
+`, int64(id), int64(id), name, time.Now().UTC(), nullableDeletedAt(deleted)); err != nil {
+			t.Fatalf("seed commander: %v", err)
+		}
+	}
+
+	seedCommander(7101, "BatchA", false)
+	seedCommander(7102, "BatchB", false)
+	seedCommander(7103, "BatchDeleted", true)
+
+	profiles, err := GetCommanderSocialProfilesByIDs([]uint32{7102, 999999, 7101, 7102, 7103})
+	if err != nil {
+		t.Fatalf("get social profiles by ids: %v", err)
+	}
+	if len(profiles) != 2 {
+		t.Fatalf("expected 2 existing profiles, got %d", len(profiles))
+	}
+	if _, ok := profiles[7101]; !ok {
+		t.Fatalf("expected profile for 7101")
+	}
+	if _, ok := profiles[7102]; !ok {
+		t.Fatalf("expected profile for 7102")
+	}
+	if _, ok := profiles[7103]; ok {
+		t.Fatalf("did not expect deleted profile 7103")
+	}
+	if _, ok := profiles[999999]; ok {
+		t.Fatalf("did not expect missing profile 999999")
+	}
+}
+
 func nullableDeletedAt(deleted bool) *time.Time {
 	if !deleted {
 		return nil
