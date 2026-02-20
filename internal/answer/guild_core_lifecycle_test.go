@@ -3,6 +3,7 @@ package answer_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,8 +56,6 @@ func cleanupGuildCoreData(t *testing.T, commanderIDs ...uint32) {
 		execAnswerExternalTestSQLT(t, "DELETE FROM owned_resources WHERE commander_id = $1", int64(commanderID))
 		execAnswerExternalTestSQLT(t, "DELETE FROM commanders WHERE commander_id = $1", int64(commanderID))
 	}
-	execAnswerExternalTestSQLT(t, "DELETE FROM guild_members")
-	execAnswerExternalTestSQLT(t, "DELETE FROM guilds")
 }
 
 func TestGuildCreateAndHydrate(t *testing.T) {
@@ -68,10 +67,11 @@ func TestGuildCreateAndHydrate(t *testing.T) {
 	defer cleanupGuildCoreData(t, commanderID, otherID)
 
 	client := &connection.Client{Commander: createGuildCommander(t, commanderID)}
+	guildName := fmt.Sprintf("NSTAR-%d", commanderID)
 	payload := &protobuf.CS_60001{
 		Faction:   proto.Uint32(1),
 		Policy:    proto.Uint32(2),
-		Name:      proto.String("North Star"),
+		Name:      proto.String(guildName),
 		Manifesto: proto.String("For science"),
 	}
 	buf, err := proto.Marshal(payload)
@@ -102,7 +102,7 @@ func TestGuildCreateAndHydrate(t *testing.T) {
 	if guildData.GetGuild().GetBase().GetId() != createResponse.GetId() {
 		t.Fatalf("expected guild data id %d, got %d", createResponse.GetId(), guildData.GetGuild().GetBase().GetId())
 	}
-	if guildData.GetGuild().GetBase().GetName() != "North Star" {
+	if guildData.GetGuild().GetBase().GetName() != guildName {
 		t.Fatalf("unexpected guild name %q", guildData.GetGuild().GetBase().GetName())
 	}
 
@@ -119,7 +119,7 @@ func TestGuildCreateAndHydrate(t *testing.T) {
 	duplicateBuf, _ := proto.Marshal(&protobuf.CS_60001{
 		Faction:   proto.Uint32(1),
 		Policy:    proto.Uint32(1),
-		Name:      proto.String("north star"),
+		Name:      proto.String(strings.ToLower(guildName)),
 		Manifesto: proto.String("Duplicate"),
 	})
 	if _, _, err := answer.CreateGuild(&duplicateBuf, otherClient); err != nil {
@@ -144,11 +144,12 @@ func TestGuildAdminOperations(t *testing.T) {
 	leaderClient := &connection.Client{Commander: createGuildCommander(t, leaderID), Hash: 11}
 	deputyClient := &connection.Client{Commander: createGuildCommander(t, deputyID), Hash: 12}
 	memberClient := &connection.Client{Commander: createGuildCommander(t, memberID), Hash: 13}
+	guildName := fmt.Sprintf("SKY-%d", leaderID)
 
 	createBuf, _ := proto.Marshal(&protobuf.CS_60001{
 		Faction:   proto.Uint32(1),
 		Policy:    proto.Uint32(1),
-		Name:      proto.String("Skyline"),
+		Name:      proto.String(guildName),
 		Manifesto: proto.String("Skyline manifest"),
 	})
 	if _, _, err := answer.CreateGuild(&createBuf, leaderClient); err != nil {
@@ -156,6 +157,9 @@ func TestGuildAdminOperations(t *testing.T) {
 	}
 	created := &protobuf.SC_60002{}
 	decodeTestPacket(t, leaderClient, 60002, created)
+	if created.GetResult() != 0 {
+		t.Fatalf("expected create success, got %d", created.GetResult())
+	}
 	guildID := created.GetId()
 
 	nowUnix := uint32(time.Now().Unix())
@@ -248,11 +252,12 @@ func TestGuildImpeach(t *testing.T) {
 	deputy := createGuildCommander(t, deputyID)
 	leaderClient := &connection.Client{Commander: leader}
 	deputyClient := &connection.Client{Commander: deputy}
+	guildName := fmt.Sprintf("OFF-%d", leaderID)
 
 	createBuf, _ := proto.Marshal(&protobuf.CS_60001{
 		Faction:   proto.Uint32(1),
 		Policy:    proto.Uint32(1),
-		Name:      proto.String("OfflineLeader"),
+		Name:      proto.String(guildName),
 		Manifesto: proto.String("test"),
 	})
 	if _, _, err := answer.CreateGuild(&createBuf, leaderClient); err != nil {
@@ -260,6 +265,9 @@ func TestGuildImpeach(t *testing.T) {
 	}
 	createResp := &protobuf.SC_60002{}
 	decodeTestPacket(t, leaderClient, 60002, createResp)
+	if createResp.GetResult() != 0 {
+		t.Fatalf("expected create success, got %d", createResp.GetResult())
+	}
 	guildID := createResp.GetId()
 
 	nowUnix := uint32(time.Now().Unix())
