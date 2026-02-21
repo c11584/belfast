@@ -331,6 +331,45 @@ DO UPDATE SET perf_index = EXCLUDED.perf_index
 	return err
 }
 
+func UpsertGuildOperationPerfsMonotonic(guildID uint32, perfs []GuildOperationPerf) error {
+	ctx := context.Background()
+	return WithPGXTx(ctx, func(tx pgx.Tx) error {
+		orderedPerfs := append([]GuildOperationPerf(nil), perfs...)
+		sort.Slice(orderedPerfs, func(i, j int) bool {
+			return orderedPerfs[i].EventTid < orderedPerfs[j].EventTid
+		})
+		for _, perf := range orderedPerfs {
+			row := tx.QueryRow(ctx, `
+SELECT perf_index
+FROM guild_operation_perfs
+WHERE guild_id = $1
+  AND event_tid = $2
+FOR UPDATE
+`, int64(guildID), int64(perf.EventTid))
+			var existing uint32
+			err := row.Scan(&existing)
+			switch {
+			case errors.Is(err, pgx.ErrNoRows):
+				// no existing progress
+			case err != nil:
+				return err
+			case perf.Index < existing:
+				return ErrGuildPermission
+			}
+
+			if _, err := tx.Exec(ctx, `
+INSERT INTO guild_operation_perfs (guild_id, event_tid, perf_index)
+VALUES ($1, $2, $3)
+ON CONFLICT (guild_id, event_tid)
+DO UPDATE SET perf_index = EXCLUDED.perf_index
+`, int64(guildID), int64(perf.EventTid), int64(perf.Index)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func GetGuildOperationEvent(guildID uint32, eventTid uint32) (*GuildOperationEvent, error) {
 	ctx := context.Background()
 	row := db.DefaultStore.Pool.QueryRow(ctx, `
@@ -458,7 +497,7 @@ FOR UPDATE
 		if err := row.Scan(&report.ID, &report.GuildID, &report.EventID, &report.EventType, &report.Score, &report.Status, &report.Claimed, &report.DropType, &report.DropID, &report.DropCount); err != nil {
 			return nil, db.MapNotFound(err)
 		}
-		if report.Claimed {
+		if report.Claimed || report.Status != 1 {
 			return nil, ErrGuildPermission
 		}
 		if _, err := tx.Exec(ctx, `
