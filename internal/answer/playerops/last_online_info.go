@@ -1,4 +1,4 @@
-package answer
+package playerops
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
