@@ -3,6 +3,7 @@ package answer_test
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -19,9 +20,14 @@ const (
 )
 
 type guildStoreEntry struct {
-	ID                 uint32 `json:"id"`
-	Weight             uint32 `json:"weight"`
-	GoodsPurchaseLimit uint32 `json:"goods_purchase_limit"`
+	ID                 uint32   `json:"id"`
+	Price              uint32   `json:"price,omitempty"`
+	Goods              []uint32 `json:"goods,omitempty"`
+	GoodsType          uint32   `json:"goods_type,omitempty"`
+	Num                uint32   `json:"num,omitempty"`
+	Type               uint32   `json:"type,omitempty"`
+	Weight             uint32   `json:"weight"`
+	GoodsPurchaseLimit uint32   `json:"goods_purchase_limit"`
 }
 
 type guildSetEntry struct {
@@ -51,6 +57,9 @@ func seedGuildShopConfig(t *testing.T) {
 }
 
 func setupGuildShopCommander(t *testing.T, commanderID uint32) *orm.Commander {
+	os.Setenv("MODE", "test")
+	orm.InitDatabase()
+
 	name := fmt.Sprintf("Guild Shop Commander %d", commanderID)
 	if err := orm.CreateCommanderRoot(commanderID, commanderID, name, 0, 0); err != nil {
 		t.Fatalf("failed to create commander: %v", err)
@@ -69,6 +78,7 @@ func setupGuildShopCommander(t *testing.T, commanderID uint32) *orm.Commander {
 func cleanupGuildShopData(t *testing.T, commanderID uint32) {
 	execAnswerExternalTestSQLT(t, "DELETE FROM guild_shop_states WHERE commander_id = $1", int64(commanderID))
 	execAnswerExternalTestSQLT(t, "DELETE FROM guild_shop_goods WHERE commander_id = $1", int64(commanderID))
+	execAnswerExternalTestSQLT(t, "DELETE FROM commander_items WHERE commander_id = $1", int64(commanderID))
 	execAnswerExternalTestSQLT(t, "DELETE FROM owned_resources WHERE commander_id = $1", int64(commanderID))
 	execAnswerExternalTestSQLT(t, "DELETE FROM commanders WHERE commander_id = $1", int64(commanderID))
 }
