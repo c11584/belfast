@@ -119,6 +119,7 @@ func registerPackets() {
 	packets.RegisterPacketHandler(18201, []packets.PacketHandler{answer.BillboardRankListPage})
 	packets.RegisterPacketHandler(18203, []packets.PacketHandler{answer.BillboardMyRank})
 	packets.RegisterPacketHandler(60033, []packets.PacketHandler{answer.GetGuildShop})
+	packets.RegisterPacketHandler(60035, []packets.PacketHandler{answer.GuildShopPurchase})
 	packets.RegisterPacketHandler(60001, []packets.PacketHandler{answer.CreateGuild})
 	packets.RegisterPacketHandler(60005, []packets.PacketHandler{answer.GuildApply})
 	packets.RegisterPacketHandler(60010, []packets.PacketHandler{answer.GuildDissolve})

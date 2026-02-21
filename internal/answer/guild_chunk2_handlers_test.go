@@ -16,7 +16,8 @@ import (
 func TestGuildDissolveRemovesGuildChatMessages(t *testing.T) {
 	orm.InitDatabase()
 	seedGuildCoreConfig(t)
-	leaderID := uint32(86401)
+	baseID := uint32(time.Now().UnixNano() & 0x7fffffff)
+	leaderID := baseID
 	cleanupGuildCoreData(t, leaderID)
 	defer cleanupGuildCoreData(t, leaderID)
 
@@ -69,9 +70,10 @@ func TestGuildDissolveRemovesGuildChatMessages(t *testing.T) {
 func TestGuildChunk2FailurePaths(t *testing.T) {
 	orm.InitDatabase()
 	seedGuildCoreConfig(t)
-	leaderID := uint32(86411)
-	deputyID := uint32(86412)
-	memberID := uint32(86413)
+	baseID := uint32(time.Now().UnixNano() & 0x7fffffff)
+	leaderID := baseID
+	deputyID := baseID + 1
+	memberID := baseID + 2
 	cleanupGuildCoreData(t, leaderID, deputyID, memberID)
 	defer cleanupGuildCoreData(t, leaderID, deputyID, memberID)
 
