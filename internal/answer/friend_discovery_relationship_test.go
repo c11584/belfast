@@ -309,6 +309,9 @@ func TestDeleteFriendMissingRelation(t *testing.T) {
 	if ack.GetResult() == 0 {
 		t.Fatalf("expected non-zero result when relation is missing")
 	}
+	if client.Buffer.Len() != 0 {
+		t.Fatalf("expected no follow-up packets when relation is missing")
+	}
 }
 
 func TestDeleteFriendInvalidTargetsReturnFailure(t *testing.T) {
