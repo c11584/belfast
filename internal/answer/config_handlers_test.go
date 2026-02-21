@@ -538,7 +538,7 @@ func TestShipyardDataUsesBlueprintConfig(t *testing.T) {
 
 func TestTechnologyNationProxyUsesFleetTechConfig(t *testing.T) {
 	client := setupConfigTest(t)
-	seedConfigEntry(t, "ShareCfg/fleet_tech_group.json", "1", `{"id":1}`)
+	seedConfigEntry(t, "ShareCfg/fleet_tech_group.json", "1", `{"id":1,"techs":[1001]}`)
 	seedConfigEntry(t, "ShareCfg/fleet_tech_template.json", "1001", `{"add":[[[1,2],3,4]]}`)
 
 	buffer := []byte{}
@@ -551,11 +551,37 @@ func TestTechnologyNationProxyUsesFleetTechConfig(t *testing.T) {
 	if len(response.GetTechList()) != 1 || response.GetTechList()[0].GetGroupId() != 1 {
 		t.Fatalf("expected tech list to include group 1")
 	}
-	if len(response.GetTechsetList()) != 2 {
-		t.Fatalf("expected tech set list size 2")
+	if len(response.GetTechsetList()) != 0 {
+		t.Fatalf("expected empty tech set override list by default")
 	}
-	if response.GetTechsetList()[0].GetAttrType() != 3 || response.GetTechsetList()[0].GetSetValue() != 4 {
-		t.Fatalf("expected tech set to use attr 3 value 4")
+}
+
+func TestTechnologyNationProxyFiltersObsoleteStateGroups(t *testing.T) {
+	client := setupConfigTest(t)
+	seedConfigEntry(t, "ShareCfg/fleet_tech_group.json", "1", `{"id":1,"techs":[1001]}`)
+	seedConfigEntry(t, "ShareCfg/fleet_tech_template.json", "1001", `{"add":[[[1,2],3,4]]}`)
+	if err := orm.SaveCommanderFleetTechState(&orm.CommanderFleetTechState{
+		CommanderID: client.Commander.CommanderID,
+		Groups: []orm.FleetTechGroupState{
+			{GroupID: 1, EffectTechID: 1001},
+			{GroupID: 999, EffectTechID: 9999},
+		},
+	}); err != nil {
+		t.Fatalf("seed fleet tech state failed: %v", err)
+	}
+
+	buffer := []byte{}
+	if _, _, err := TechnologyNationProxy(&buffer, client); err != nil {
+		t.Fatalf("technology nation proxy failed: %v", err)
+	}
+
+	var response protobuf.SC_64000
+	decodeResponse(t, client, &response)
+	if len(response.GetTechList()) != 1 {
+		t.Fatalf("expected one configured group, got %d", len(response.GetTechList()))
+	}
+	if response.GetTechList()[0].GetGroupId() != 1 {
+		t.Fatalf("expected only configured group id 1, got %d", response.GetTechList()[0].GetGroupId())
 	}
 }
 

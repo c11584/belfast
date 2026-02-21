@@ -1,7 +1,7 @@
 package answer
 
 import (
-	"encoding/json"
+	"sort"
 
 	"github.com/ggmolly/belfast/internal/connection"
 	"github.com/ggmolly/belfast/internal/orm"
@@ -9,88 +9,51 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type fleetTechGroup struct {
-	ID uint32 `json:"id"`
-}
-
-type fleetTechTemplate struct {
-	Add []any `json:"add"`
-}
-
 func TechnologyNationProxy(buffer *[]byte, client *connection.Client) (int, int, error) {
-	techGroups, err := orm.ListConfigEntries("ShareCfg/fleet_tech_group.json")
+	groups, templates, err := loadFleetTechConfigs()
 	if err != nil {
 		return 0, 64000, err
 	}
-	techTemplates, err := orm.ListConfigEntries("ShareCfg/fleet_tech_template.json")
+	state, err := orm.GetOrCreateCommanderFleetTechState(client.Commander.CommanderID)
 	if err != nil {
 		return 0, 64000, err
 	}
+	for groupID := range groups {
+		state.UpsertGroup(groupID)
+	}
+	maxAdditions := fleetTechBuildMaxAdditions(state, groups, templates)
+	techSetList := fleetTechBuildTechSetList(state, maxAdditions)
+	state.SetAttrOverrides(make([]orm.FleetTechAttrOverride, 0, len(techSetList)))
+	for _, set := range techSetList {
+		state.AttrOverrides = append(state.AttrOverrides, orm.FleetTechAttrOverride{ShipType: set.GetShipType(), AttrType: set.GetAttrType(), SetValue: set.GetSetValue()})
+	}
+	if err := orm.SaveCommanderFleetTechState(state); err != nil {
+		return 0, 64000, err
+	}
+
 	response := protobuf.SC_64000{
-		TechList:    make([]*protobuf.FLEETTECH, 0, len(techGroups)),
-		TechsetList: make([]*protobuf.TECHSET, 0),
+		TechList:    make([]*protobuf.FLEETTECH, 0, len(groups)),
+		TechsetList: techSetList,
 	}
-	for _, entry := range techGroups {
-		var group fleetTechGroup
-		if err := json.Unmarshal(entry.Data, &group); err != nil {
-			return 0, 64000, err
+	groupIDs := make([]uint32, 0, len(groups))
+	for groupID := range groups {
+		groupIDs = append(groupIDs, groupID)
+	}
+	sort.Slice(groupIDs, func(i int, j int) bool {
+		return groupIDs[i] < groupIDs[j]
+	})
+	for _, groupID := range groupIDs {
+		group, ok := state.GetGroup(groupID)
+		if !ok {
+			continue
 		}
 		response.TechList = append(response.TechList, &protobuf.FLEETTECH{
-			GroupId:         proto.Uint32(group.ID),
-			EffectTechId:    proto.Uint32(0),
-			StudyTechId:     proto.Uint32(0),
-			StudyFinishTime: proto.Uint32(0),
-			RewardedTech:    proto.Uint32(0),
+			GroupId:         proto.Uint32(groupID),
+			EffectTechId:    proto.Uint32(group.EffectTechID),
+			StudyTechId:     proto.Uint32(group.StudyTechID),
+			StudyFinishTime: proto.Uint32(group.StudyFinishTime),
+			RewardedTech:    proto.Uint32(group.RewardedTechID),
 		})
 	}
-	for _, entry := range techTemplates {
-		var template fleetTechTemplate
-		if err := json.Unmarshal(entry.Data, &template); err != nil {
-			return 0, 64000, err
-		}
-		response.TechsetList = append(response.TechsetList, buildTechSets(template.Add)...)
-	}
 	return client.SendMessage(64000, &response)
-}
-
-func buildTechSets(rawAdd []any) []*protobuf.TECHSET {
-	results := make([]*protobuf.TECHSET, 0)
-	for _, entry := range rawAdd {
-		parts, ok := entry.([]any)
-		if !ok || len(parts) < 3 {
-			continue
-		}
-		shipTypes, ok := parts[0].([]any)
-		if !ok {
-			continue
-		}
-		attrType, ok := parseJSONUint32(parts[1])
-		if !ok {
-			continue
-		}
-		setValue, ok := parseJSONUint32(parts[2])
-		if !ok {
-			continue
-		}
-		for _, shipTypeValue := range shipTypes {
-			shipType, ok := parseJSONUint32(shipTypeValue)
-			if !ok {
-				continue
-			}
-			results = append(results, &protobuf.TECHSET{
-				ShipType: proto.Uint32(shipType),
-				AttrType: proto.Uint32(attrType),
-				SetValue: proto.Uint32(setValue),
-			})
-		}
-	}
-	return results
-}
-
-func parseJSONUint32(value any) (uint32, bool) {
-	number, ok := value.(float64)
-	if !ok {
-		return 0, false
-	}
-	return uint32(number), true
 }
