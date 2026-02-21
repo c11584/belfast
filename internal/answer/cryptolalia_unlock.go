@@ -100,8 +100,16 @@ func CryptolaliaUnlock(buffer *[]byte, client *connection.Client) (int, int, err
 		}
 		return client.SendMessage(16206, &response)
 	}
-
-	return client.SendMessage(16206, &response)
+	bytesWritten, packetID, err := client.SendMessage(16206, &response)
+	if err != nil {
+		return bytesWritten, packetID, err
+	}
+	if cost.dropType == 1 {
+		if _, _, err := SendPlayerResourceSync(client); err != nil {
+			return bytesWritten, packetID, err
+		}
+	}
+	return bytesWritten, packetID, nil
 }
 
 type soundStoryCost struct {
