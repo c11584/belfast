@@ -12,6 +12,10 @@ func ExercisePowerRankList(buffer *[]byte, client *connection.Client) (int, int,
 	return answerexercise.ExercisePowerRankList(buffer, client)
 }
 
+func ExerciseEnemies(buffer *[]byte, client *connection.Client) (int, int, error) {
+	return answerexercise.ExerciseEnemies(buffer, client)
+}
+
 func ExerciseReplaceRivals(buffer *[]byte, client *connection.Client) (int, int, error) {
 	return answerexercise.ExerciseReplaceRivals(buffer, client)
 }
