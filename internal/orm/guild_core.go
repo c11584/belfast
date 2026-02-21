@@ -792,6 +792,9 @@ func GuildDissolve(commanderID uint32, guildID uint32) error {
 		if _, err := tx.Exec(ctx, `UPDATE guild_user_infos SET guild_id = 0 WHERE guild_id = $1`, int64(guildID)); err != nil {
 			return err
 		}
+		if _, err := tx.Exec(ctx, `DELETE FROM guild_chat_messages WHERE guild_id = $1`, int64(guildID)); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `DELETE FROM guild_members WHERE guild_id = $1`, int64(guildID)); err != nil {
 			return err
 		}
