@@ -334,7 +334,11 @@ DO UPDATE SET perf_index = EXCLUDED.perf_index
 func UpsertGuildOperationPerfsMonotonic(guildID uint32, perfs []GuildOperationPerf) error {
 	ctx := context.Background()
 	return WithPGXTx(ctx, func(tx pgx.Tx) error {
-		for _, perf := range perfs {
+		orderedPerfs := append([]GuildOperationPerf(nil), perfs...)
+		sort.Slice(orderedPerfs, func(i, j int) bool {
+			return orderedPerfs[i].EventTid < orderedPerfs[j].EventTid
+		})
+		for _, perf := range orderedPerfs {
 			row := tx.QueryRow(ctx, `
 SELECT perf_index
 FROM guild_operation_perfs
