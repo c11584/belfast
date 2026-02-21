@@ -1,4 +1,4 @@
-package answer
+package shipbuild
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
