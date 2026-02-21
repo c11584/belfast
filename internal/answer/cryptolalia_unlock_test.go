@@ -114,11 +114,14 @@ func TestCryptolaliaUnlockIsIdempotent(t *testing.T) {
 		t.Fatalf("CryptolaliaUnlock second: %v", err)
 	}
 	var resp protobuf.SC_16206
-	decodePacketAt(t, client, 0, 16206, &resp)
-	client.Buffer.Reset()
+	offset := decodePacketAt(t, client, 0, 16206, &resp)
 	if resp.GetRet() != 0 {
 		t.Fatalf("expected ret=0, got %d", resp.GetRet())
 	}
+	if offset != len(client.Buffer.Bytes()) {
+		t.Fatalf("expected idempotent unlock to emit only SC_16206")
+	}
+	client.Buffer.Reset()
 	if client.Commander.GetResourceCount(4) != 80 {
 		t.Fatalf("expected currency not to be consumed twice, got %d", client.Commander.GetResourceCount(4))
 	}
