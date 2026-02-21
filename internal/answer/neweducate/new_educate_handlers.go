@@ -1,4 +1,4 @@
-package answer
+package neweducate
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
