@@ -20,7 +20,10 @@ func SubmitGuildReportCommandResponse(buffer *[]byte, client *connection.Client)
 	if client.Commander == nil {
 		return client.SendMessage(61020, response)
 	}
-	ids := stableUniqueNonZero(payload.GetIds())
+	ids, invalid := normalizeReportIDs(payload.GetIds())
+	if invalid {
+		return client.SendMessage(61020, response)
+	}
 	if len(ids) == 0 {
 		return client.SendMessage(61020, response)
 	}
@@ -55,12 +58,12 @@ func SubmitGuildReportCommandResponse(buffer *[]byte, client *connection.Client)
 	return client.SendMessage(61020, response)
 }
 
-func stableUniqueNonZero(ids []uint32) []uint32 {
+func normalizeReportIDs(ids []uint32) ([]uint32, bool) {
 	seen := make(map[uint32]struct{}, len(ids))
 	out := make([]uint32, 0, len(ids))
 	for _, id := range ids {
 		if id == 0 {
-			continue
+			return nil, true
 		}
 		if _, ok := seen[id]; ok {
 			continue
@@ -68,5 +71,5 @@ func stableUniqueNonZero(ids []uint32) []uint32 {
 		seen[id] = struct{}{}
 		out = append(out, id)
 	}
-	return out
+	return out, false
 }

@@ -23,10 +23,16 @@ func GuildUpdateNodeAnimFlagCommandResponse(buffer *[]byte, client *connection.C
 	if err != nil {
 		return client.SendMessage(61026, response)
 	}
+	updates := make([]orm.GuildOperationPerf, 0, len(payload.GetPerf()))
+	seen := make(map[uint32]struct{}, len(payload.GetPerf()))
 	for _, perf := range payload.GetPerf() {
 		if perf == nil || perf.GetEventId() == 0 {
 			return client.SendMessage(61026, response)
 		}
+		if _, ok := seen[perf.GetEventId()]; ok {
+			return client.SendMessage(61026, response)
+		}
+		seen[perf.GetEventId()] = struct{}{}
 		event, err := orm.GetGuildOperationEvent(guild.ID, perf.GetEventId())
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
@@ -37,9 +43,13 @@ func GuildUpdateNodeAnimFlagCommandResponse(buffer *[]byte, client *connection.C
 		if perf.GetIndex() < event.Position {
 			return client.SendMessage(61026, response)
 		}
-		if err := orm.UpsertGuildOperationPerf(guild.ID, perf.GetEventId(), perf.GetIndex()); err != nil {
-			return 0, 61026, err
+		updates = append(updates, orm.GuildOperationPerf{EventTid: perf.GetEventId(), Index: perf.GetIndex()})
+	}
+	if err := orm.UpsertGuildOperationPerfsMonotonic(guild.ID, updates); err != nil {
+		if errors.Is(err, orm.ErrGuildPermission) {
+			return client.SendMessage(61026, response)
 		}
+		return 0, 61026, err
 	}
 	response.Result = proto.Uint32(guildEventResultSuccess)
 	return client.SendMessage(61026, response)

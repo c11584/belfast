@@ -236,6 +236,35 @@ func TestGuildEventChunk4ReportsAndRank(t *testing.T) {
 	}
 }
 
+func TestGuildEventChunk4SubmitReportRejectsZeroID(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildCoreConfig(t)
+	chapterID := uint32(7014)
+	seedGuildEventChunk4Config(t, chapterID)
+	client, guildID := createGuildEventClient(t, 87171)
+	defer cleanupGuildEventChunk4Data(t, guildID, 87171)
+
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_reports (guild_id, id, event_id, event_type, score, status, claimed, drop_type, drop_id, drop_count) VALUES ($1, 1201, 5201, 2, 300, 1, false, 1, 1, 50)", int64(guildID))
+
+	submitBuf, _ := proto.Marshal(&protobuf.CS_61019{Ids: []uint32{0, 1201}})
+	if _, _, err := answer.SubmitGuildReportCommandResponse(&submitBuf, client); err != nil {
+		t.Fatalf("SubmitGuildReportCommandResponse failed: %v", err)
+	}
+	submitResp := &protobuf.SC_61020{}
+	decodeTestPacket(t, client, 61020, submitResp)
+	if submitResp.GetResult() == 0 {
+		t.Fatalf("expected submit failure when request includes id 0")
+	}
+
+	var claimed bool
+	if err := db.DefaultStore.Pool.QueryRow(t.Context(), "SELECT claimed FROM guild_reports WHERE guild_id = $1 AND id = 1201", int64(guildID)).Scan(&claimed); err != nil {
+		t.Fatalf("query claimed status: %v", err)
+	}
+	if claimed {
+		t.Fatalf("expected report to remain unclaimed when payload contains id 0")
+	}
+}
+
 func TestGuildEventChunk4JoinEvent(t *testing.T) {
 	orm.InitDatabase()
 	seedGuildCoreConfig(t)
@@ -364,5 +393,43 @@ func TestGuildEventChunk4SubmitReportRollbackOnDropFailure(t *testing.T) {
 	}
 	if claimed {
 		t.Fatalf("expected report claim rollback on drop failure")
+	}
+}
+
+func TestGuildEventChunk4PerfMonotonicRejectsDecreasingUpdate(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildCoreConfig(t)
+	chapterID := uint32(7015)
+	seedGuildEventChunk4Config(t, chapterID)
+	client, guildID := createGuildEventClient(t, 87181)
+	defer cleanupGuildEventChunk4Data(t, guildID, 87181)
+	activateGuildEventChapter(t, client, chapterID)
+
+	firstPerfBuf, _ := proto.Marshal(&protobuf.CS_61025{Perf: []*protobuf.EVENT_PERFORMANCE{{EventId: proto.Uint32(chapterID), Index: proto.Uint32(3)}}})
+	if _, _, err := answer.GuildUpdateNodeAnimFlagCommandResponse(&firstPerfBuf, client); err != nil {
+		t.Fatalf("GuildUpdateNodeAnimFlagCommandResponse first update failed: %v", err)
+	}
+	firstResp := &protobuf.SC_61026{}
+	decodeTestPacket(t, client, 61026, firstResp)
+	if firstResp.GetResult() != 0 {
+		t.Fatalf("expected initial perf update success, got %d", firstResp.GetResult())
+	}
+
+	decreasePerfBuf, _ := proto.Marshal(&protobuf.CS_61025{Perf: []*protobuf.EVENT_PERFORMANCE{{EventId: proto.Uint32(chapterID), Index: proto.Uint32(2)}}})
+	if _, _, err := answer.GuildUpdateNodeAnimFlagCommandResponse(&decreasePerfBuf, client); err != nil {
+		t.Fatalf("GuildUpdateNodeAnimFlagCommandResponse decreasing update failed: %v", err)
+	}
+	decreaseResp := &protobuf.SC_61026{}
+	decodeTestPacket(t, client, 61026, decreaseResp)
+	if decreaseResp.GetResult() == 0 {
+		t.Fatalf("expected decreasing perf update to fail")
+	}
+
+	var index int64
+	if err := db.DefaultStore.Pool.QueryRow(t.Context(), "SELECT perf_index FROM guild_operation_perfs WHERE guild_id = $1 AND event_tid = $2", int64(guildID), int64(chapterID)).Scan(&index); err != nil {
+		t.Fatalf("query perf index: %v", err)
+	}
+	if index != 3 {
+		t.Fatalf("expected perf index to remain 3 after rejected update, got %d", index)
 	}
 }
