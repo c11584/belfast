@@ -184,6 +184,114 @@ func TestCatchupQueueAndFinishQueue(t *testing.T) {
 	}
 }
 
+func TestStartTechnologyResearchRollsBackConsumeFailure(t *testing.T) {
+	client := newTechnologyTestClient(t)
+	const (
+		techID      = uint32(991001)
+		refreshID   = uint32(77)
+		resourceID  = uint32(900001)
+		resourceKey = int64(900001)
+	)
+	execAnswerTestSQLT(t, `
+INSERT INTO resources (id, item_id, name)
+VALUES ($1, 0, 'test-resource-tech')
+ON CONFLICT (id) DO NOTHING
+`, resourceKey)
+	if err := client.Commander.AddResource(resourceID, 1); err != nil {
+		t.Fatalf("seed resource: %v", err)
+	}
+	payload := fmt.Sprintf(`{"id":991001,"type":77,"time":60,"condition":0,"consume":[[1,%d,1],[1,%d,1]],"drop_client":[[1,%d,1]]}`,
+		resourceID,
+		resourceID,
+		resourceID,
+	)
+	seedConfigEntry(t, "ShareCfg/technology_data_template.json", fmt.Sprintf("%d", techID), payload)
+	state := &orm.TechnologyResearchState{
+		CommanderID: client.Commander.CommanderID,
+		RefreshDay:  orm.CurrentTechnologyDay(time.Now().UTC()),
+		RefreshPools: []orm.TechnologyRefreshPoolState{{
+			ID: refreshID,
+			Technologies: []orm.TechnologyProjectState{{
+				TechID: techID,
+			}},
+		}},
+		Queue: []orm.TechnologyQueueState{},
+	}
+	if err := orm.SaveTechnologyResearchState(state); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+	initialAmount := uint32(1)
+
+	startReq := &protobuf.CS_63001{TechId: proto.Uint32(techID), RefreshId: proto.Uint32(refreshID)}
+	startBuf, _ := proto.Marshal(startReq)
+	if _, _, err := StartTechnologyResearch(&startBuf, client); err != nil {
+		t.Fatalf("start technology: %v", err)
+	}
+	startResp := &protobuf.SC_63002{}
+	decodeTechnologyResponse(t, client, 63002, startResp)
+	if startResp.GetResult() == technologyOK {
+		t.Fatalf("expected start to fail when consume cannot fully complete")
+	}
+
+	if err := client.Commander.Load(); err != nil {
+		t.Fatalf("reload commander: %v", err)
+	}
+	reloadedResource, ok := client.Commander.OwnedResourcesMap[resourceID]
+	if !ok {
+		t.Fatalf("expected reloaded resource")
+	}
+	if reloadedResource.Amount != initialAmount {
+		t.Fatalf("expected resource rollback to %d, got %d", initialAmount, reloadedResource.Amount)
+	}
+}
+
+func TestFinishTechnologyResearchAllowsConditionTemplates(t *testing.T) {
+	client := newTechnologyTestClient(t)
+	const (
+		techID      = uint32(991002)
+		refreshID   = uint32(78)
+		resourceID  = uint32(900002)
+		resourceKey = int64(900002)
+	)
+	execAnswerTestSQLT(t, `
+INSERT INTO resources (id, item_id, name)
+VALUES ($1, 0, 'test-resource-tech-finish')
+ON CONFLICT (id) DO NOTHING
+`, resourceKey)
+	seedConfigEntry(t, "ShareCfg/technology_data_template.json", fmt.Sprintf("%d", techID), fmt.Sprintf(`{"id":991002,"type":78,"time":60,"condition":1,"consume":[],"drop_client":[[1,%d,1]]}`,
+		resourceID,
+	))
+	state := &orm.TechnologyResearchState{
+		CommanderID: client.Commander.CommanderID,
+		RefreshDay:  orm.CurrentTechnologyDay(time.Now().UTC()),
+		RefreshPools: []orm.TechnologyRefreshPoolState{{
+			ID: refreshID,
+			Technologies: []orm.TechnologyProjectState{{
+				TechID:     techID,
+				FinishTime: uint32(time.Now().Add(-time.Minute).Unix()),
+			}},
+		}},
+		Queue: []orm.TechnologyQueueState{},
+	}
+	if err := orm.SaveTechnologyResearchState(state); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+
+	finishReq := &protobuf.CS_63003{TechId: proto.Uint32(techID), RefreshId: proto.Uint32(refreshID)}
+	finishBuf, _ := proto.Marshal(finishReq)
+	if _, _, err := FinishTechnologyResearch(&finishBuf, client); err != nil {
+		t.Fatalf("finish technology: %v", err)
+	}
+	finishResp := &protobuf.SC_63004{}
+	decodeTechnologyResponse(t, client, 63004, finishResp)
+	if finishResp.GetResult() != technologyOK {
+		t.Fatalf("expected finish success for condition template, got %d", finishResp.GetResult())
+	}
+	if len(finishResp.GetCommonList()) == 0 {
+		t.Fatalf("expected finish rewards")
+	}
+}
+
 func firstCatchupTarget(t *testing.T) (uint32, uint32) {
 	t.Helper()
 	type catchupTemplate struct {

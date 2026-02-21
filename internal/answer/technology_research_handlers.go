@@ -68,7 +68,7 @@ func StartTechnologyResearch(buffer *[]byte, client *connection.Client) (int, in
 			return nil
 		}
 		if err := consumeTechnologyCostTx(context.Background(), tx, client.Commander, template.Consume); err != nil {
-			return nil
+			return err
 		}
 
 		finish := uint32(time.Now().Unix()) + template.Time
@@ -125,10 +125,6 @@ func FinishTechnologyResearch(buffer *[]byte, client *connection.Client) (int, i
 		if err != nil {
 			return nil
 		}
-		if template.Condition != 0 {
-			return nil
-		}
-
 		rewards := buildDropInfoList(template.DropClient)
 		if err := grantTechnologyRewardsTx(context.Background(), tx, client.Commander, rewards); err != nil {
 			response.Result = proto.Uint32(technologyPersist)
