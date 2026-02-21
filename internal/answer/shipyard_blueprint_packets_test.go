@@ -173,12 +173,17 @@ DO UPDATE SET ship_id = EXCLUDED.ship_id, blue_print_level = 0, exp = 0
 
 func TestShipyardFinishBlueprint(t *testing.T) {
 	client := setupShipyardBlueprintTest(t)
+	execAnswerTestSQLT(t, `
+UPDATE commander_tasks
+SET progress = 100, submit_time = 1
+WHERE commander_id = $1 AND task_id = 9003
+`, int64(client.Commander.CommanderID))
 
 	execAnswerTestSQLT(t, `
 INSERT INTO commander_shipyard_blueprints (commander_id, blueprint_id, ship_id, start_time, blue_print_level, exp, start_duration)
-VALUES ($1, $2, 0, 0, 2, 0, 0)
+VALUES ($1, $2, 0, 10, 0, 0, 0)
 ON CONFLICT (commander_id, blueprint_id)
-DO UPDATE SET blue_print_level = 2, exp = 0, ship_id = 0
+DO UPDATE SET start_time = 10, blue_print_level = 0, exp = 0, ship_id = 0
 `, int64(client.Commander.CommanderID), int64(shipyardTestBlueprintID))
 
 	payload := protobuf.CS_63202{BlueprintId: proto.Uint32(shipyardTestBlueprintID)}
@@ -191,6 +196,37 @@ DO UPDATE SET blue_print_level = 2, exp = 0, ship_id = 0
 	decodeResponse(t, client, &response)
 	if response.GetResult() != 0 || response.GetShip() == nil {
 		t.Fatalf("expected finish success with ship")
+	}
+}
+
+func TestShipyardResumeRejectsWhenAnotherDevelopmentActive(t *testing.T) {
+	client := setupShipyardBlueprintTest(t)
+
+	startPayload := protobuf.CS_63200{BlueprintId: proto.Uint32(shipyardTestBlueprintID)}
+	startBuffer, _ := proto.Marshal(&startPayload)
+	client.Buffer.Reset()
+	if _, _, err := StartShipBlueprintDevelopment(&startBuffer, client); err != nil {
+		t.Fatalf("start handler failed: %v", err)
+	}
+
+	const pausedBlueprintID = uint32(70002)
+	execAnswerTestSQLT(t, `
+INSERT INTO commander_shipyard_blueprints (commander_id, blueprint_id, ship_id, start_time, blue_print_level, exp, start_duration)
+VALUES ($1, $2, 0, 0, 0, 0, 60)
+ON CONFLICT (commander_id, blueprint_id)
+DO UPDATE SET ship_id = 0, start_time = 0, start_duration = 60
+`, int64(client.Commander.CommanderID), int64(pausedBlueprintID))
+
+	resumePayload := protobuf.CS_63208{BlueprintId: proto.Uint32(pausedBlueprintID)}
+	resumeBuffer, _ := proto.Marshal(&resumePayload)
+	client.Buffer.Reset()
+	if _, _, err := ResumeShipBlueprint(&resumeBuffer, client); err != nil {
+		t.Fatalf("resume handler failed: %v", err)
+	}
+	var resumeResponse protobuf.SC_63209
+	decodeResponse(t, client, &resumeResponse)
+	if resumeResponse.GetResult() == 0 {
+		t.Fatalf("expected resume to fail when another blueprint is active")
 	}
 }
 

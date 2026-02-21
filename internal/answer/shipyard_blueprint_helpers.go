@@ -115,6 +115,60 @@ func isBlueprintDevelopmentFinished(entry *orm.CommanderShipyardBlueprint, cfg *
 	return true, nil
 }
 
+func isShipyardBlueprintReadyToFinishTx(ctx context.Context, tx pgx.Tx, commanderID uint32, entry *orm.CommanderShipyardBlueprint, cfg *orm.ShipDataBlueprintConfig) (bool, error) {
+	if entry == nil || cfg == nil {
+		return false, nil
+	}
+	if entry.StartTime == 0 && entry.StartDuration == 0 {
+		return false, nil
+	}
+	finished, err := isBlueprintDevelopmentFinished(entry, cfg)
+	if err != nil {
+		return false, err
+	}
+	if finished {
+		return true, nil
+	}
+
+	seen := map[uint32]struct{}{}
+	taskIDs := make([]uint32, 0, len(cfg.UnlockTaskOpenCondition)+len(cfg.UnlockTask))
+	for _, taskID := range cfg.UnlockTaskOpenCondition {
+		if taskID == 0 {
+			continue
+		}
+		if _, ok := seen[taskID]; ok {
+			continue
+		}
+		seen[taskID] = struct{}{}
+		taskIDs = append(taskIDs, taskID)
+	}
+	for _, group := range cfg.UnlockTask {
+		for _, taskID := range group {
+			if taskID == 0 {
+				continue
+			}
+			if _, ok := seen[taskID]; ok {
+				continue
+			}
+			seen[taskID] = struct{}{}
+			taskIDs = append(taskIDs, taskID)
+		}
+	}
+	if len(taskIDs) == 0 {
+		return false, nil
+	}
+	for _, taskID := range taskIDs {
+		ok, err := isShipyardTaskSatisfiedTx(ctx, tx, commanderID, taskID)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func totalBlueprintLevels(cfg *orm.ShipDataBlueprintConfig) (uint32, error) {
 	if cfg == nil {
 		return 0, errors.New("nil blueprint config")

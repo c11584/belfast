@@ -168,6 +168,18 @@ func ResumeShipBlueprint(buffer *[]byte, client *connection.Client) (int, int, e
 	now := shipyardNowUnix()
 	err := orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
 		ctx := context.Background()
+		allRows, err := orm.ListCommanderShipyardBlueprints(client.Commander.CommanderID)
+		if err != nil {
+			return err
+		}
+		for _, row := range allRows {
+			if row.BlueprintID == blueprintID {
+				continue
+			}
+			if row.ShipID == 0 && row.StartTime > 0 {
+				return db.ErrNotFound
+			}
+		}
 		entry, err := orm.GetCommanderShipyardBlueprintTx(ctx, tx, client.Commander.CommanderID, blueprintID)
 		if err != nil {
 			return err
@@ -216,11 +228,11 @@ func FinishShipBlueprint(buffer *[]byte, client *connection.Client) (int, int, e
 		if err != nil {
 			return err
 		}
-		finished, err := isBlueprintDevelopmentFinished(entry, cfg)
+		readyToFinish, err := isShipyardBlueprintReadyToFinishTx(ctx, tx, client.Commander.CommanderID, entry, cfg)
 		if err != nil {
 			return err
 		}
-		if !finished || entry.ShipID != 0 {
+		if !readyToFinish || entry.ShipID != 0 {
 			return db.ErrNotFound
 		}
 		ship, err := client.Commander.AddShipTx(ctx, tx, cfg.ShipTemplateID())
