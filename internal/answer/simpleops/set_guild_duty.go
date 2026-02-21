@@ -1,10 +1,15 @@
-package answer
+package simpleops
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
 	"google.golang.org/protobuf/proto"
+)
+
+const (
+	guildResultSuccess = 0
+	guildResultFailure = 1
 )
 
 func SetGuildDuty(buffer *[]byte, client *connection.Client) (int, int, error) {
