@@ -34,6 +34,7 @@ var (
 	ErrCommanderNotInGuild  = errors.New("commander is not in guild")
 	ErrGuildPermission      = errors.New("guild permission denied")
 	ErrGuildInvalidArgument = errors.New("invalid guild argument")
+	ErrGuildInsufficientCap = errors.New("guild capital is insufficient")
 )
 
 type Guild struct {
@@ -144,6 +145,22 @@ func GetGuildDataLevelDeputyLimit(level uint32) (uint32, error) {
 	limit, ok := parseGuildConfigUint(payload["assistant_commander"])
 	if !ok {
 		return 0, fmt.Errorf("invalid assistant_commander at level %d", level)
+	}
+	return limit, nil
+}
+
+func GetGuildDataLevelMemberLimit(level uint32) (uint32, error) {
+	entry, err := GetConfigEntry("ShareCfg/guild_data_level.json", strconv.FormatUint(uint64(level), 10))
+	if err != nil {
+		return 0, err
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(entry.Data, &payload); err != nil {
+		return 0, err
+	}
+	limit, ok := parseGuildConfigUint(payload["member_num"])
+	if !ok {
+		return 0, fmt.Errorf("invalid member_num at level %d", level)
 	}
 	return limit, nil
 }
@@ -790,6 +807,18 @@ func GuildDissolve(commanderID uint32, guildID uint32) error {
 			return ErrGuildPermission
 		}
 		if _, err := tx.Exec(ctx, `UPDATE guild_user_infos SET guild_id = 0 WHERE guild_id = $1`, int64(guildID)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM guild_chat_messages WHERE guild_id = $1`, int64(guildID)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+DELETE FROM guild_chat_messages gcm
+USING guild_members gm
+WHERE gm.guild_id = $1
+  AND gm.commander_id = gcm.sender_id
+  AND gcm.guild_id = 0
+`, int64(guildID)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM guild_members WHERE guild_id = $1`, int64(guildID)); err != nil {
