@@ -1,4 +1,4 @@
-package answer
+package tactics
 
 import (
 	"encoding/json"
