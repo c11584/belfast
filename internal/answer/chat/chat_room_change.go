@@ -1,4 +1,4 @@
-package answer
+package chat
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"

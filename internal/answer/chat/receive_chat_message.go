@@ -1,4 +1,4 @@
-package answer
+package chat
 
 import (
 	"fmt"
