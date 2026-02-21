@@ -273,3 +273,96 @@ func TestGuildEventChunk4JoinEvent(t *testing.T) {
 		t.Fatalf("expected liveness incremented, got %d", liveness)
 	}
 }
+
+func TestGuildEventChunk4ActivateInsufficientCapital(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildCoreConfig(t)
+	chapterID := uint32(7010)
+	seedGuildEventChunk4Config(t, chapterID)
+	client, guildID := createGuildEventClient(t, 87141)
+	defer cleanupGuildEventChunk4Data(t, guildID, 87141)
+
+	execAnswerExternalTestSQLT(t, "UPDATE guilds SET capital = 99 WHERE id = $1", int64(guildID))
+
+	buf, _ := proto.Marshal(&protobuf.CS_61001{ChapterId: proto.Uint32(chapterID)})
+	if _, _, err := answer.GuildActiveEventCommandResponse(&buf, client); err != nil {
+		t.Fatalf("GuildActiveEventCommandResponse failed: %v", err)
+	}
+	resp := &protobuf.SC_61002{}
+	decodeTestPacket(t, client, 61002, resp)
+	if resp.GetResult() != 2 {
+		t.Fatalf("expected insufficient-capital result 2, got %d", resp.GetResult())
+	}
+}
+
+func TestGuildEventChunk4ReactivationResetsParticipantsAndScopesEvents(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildCoreConfig(t)
+	chapterA := uint32(7011)
+	chapterB := uint32(7012)
+	seedGuildEventChunk4Config(t, chapterA)
+	seedGuildEventChunk4Config(t, chapterB)
+	client, guildID := createGuildEventClient(t, 87151)
+	defer cleanupGuildEventChunk4Data(t, guildID, 87151)
+
+	activateGuildEventChapter(t, client, chapterA)
+
+	joinBuf, _ := proto.Marshal(&protobuf.CS_61031{Type: proto.Uint32(0)})
+	if _, _, err := answer.GuildJoinEventCommandResponse(&joinBuf, client); err != nil {
+		t.Fatalf("GuildJoinEventCommandResponse failed: %v", err)
+	}
+	joinResp := &protobuf.SC_61032{}
+	decodeTestPacket(t, client, 61032, joinResp)
+	if joinResp.GetResult() != 0 {
+		t.Fatalf("expected first join success, got %d", joinResp.GetResult())
+	}
+
+	execAnswerExternalTestSQLT(t, "UPDATE guild_operation_states SET end_time = 1 WHERE guild_id = $1", int64(guildID))
+
+	activateGuildEventChapter(t, client, chapterB)
+
+	snapshotBuf, _ := proto.Marshal(&protobuf.CS_61005{Type: proto.Uint32(0)})
+	if _, _, err := answer.GuildGetActivationEventCommandResponse(&snapshotBuf, client); err != nil {
+		t.Fatalf("GuildGetActivationEventCommandResponse failed: %v", err)
+	}
+	snapshotResp := &protobuf.SC_61006{}
+	decodeTestPacket(t, client, 61006, snapshotResp)
+	if snapshotResp.GetOperation().GetOperationId() != chapterB {
+		t.Fatalf("expected operation id %d, got %d", chapterB, snapshotResp.GetOperation().GetOperationId())
+	}
+	if len(snapshotResp.GetOperation().GetBaseEvents()) != 1 || snapshotResp.GetOperation().GetBaseEvents()[0].GetEventId() != chapterB {
+		t.Fatalf("expected snapshot scoped to chapter %d", chapterB)
+	}
+	if snapshotResp.GetOperation().GetJoinTimes() != 0 {
+		t.Fatalf("expected join times reset to 0 on new operation, got %d", snapshotResp.GetOperation().GetJoinTimes())
+	}
+}
+
+func TestGuildEventChunk4SubmitReportRollbackOnDropFailure(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildCoreConfig(t)
+	chapterID := uint32(7013)
+	seedGuildEventChunk4Config(t, chapterID)
+	client, guildID := createGuildEventClient(t, 87161)
+	defer cleanupGuildEventChunk4Data(t, guildID, 87161)
+
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_reports (guild_id, id, event_id, event_type, score, status, claimed, drop_type, drop_id, drop_count) VALUES ($1, 1101, 5101, 2, 100, 1, false, 999, 1, 1)", int64(guildID))
+
+	submitBuf, _ := proto.Marshal(&protobuf.CS_61019{Ids: []uint32{1101}})
+	if _, _, err := answer.SubmitGuildReportCommandResponse(&submitBuf, client); err != nil {
+		t.Fatalf("SubmitGuildReportCommandResponse failed: %v", err)
+	}
+	submitResp := &protobuf.SC_61020{}
+	decodeTestPacket(t, client, 61020, submitResp)
+	if submitResp.GetResult() == 0 {
+		t.Fatalf("expected submit failure for unsupported drop type")
+	}
+
+	var claimed bool
+	if err := db.DefaultStore.Pool.QueryRow(t.Context(), "SELECT claimed FROM guild_reports WHERE guild_id = $1 AND id = 1101", int64(guildID)).Scan(&claimed); err != nil {
+		t.Fatalf("query claimed status: %v", err)
+	}
+	if claimed {
+		t.Fatalf("expected report claim rollback on drop failure")
+	}
+}

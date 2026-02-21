@@ -95,7 +95,7 @@ WHERE guild_id = $1
 	if err := row.Scan(&state.GuildID, &state.ChapterID, &state.StartTime, &state.EndTime); err != nil {
 		return nil, db.MapNotFound(err)
 	}
-	events, err := listGuildOperationEvents(ctx, db.DefaultStore.Pool, guildID)
+	events, err := listGuildOperationEvents(ctx, db.DefaultStore.Pool, guildID, state.ChapterID)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,10 @@ WHERE id = $1
 			return err
 		}
 		if res.RowsAffected() == 0 {
-			return ErrGuildInvalidArgument
+			return ErrGuildInsufficientCap
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM guild_operation_participants WHERE guild_id = $1`, int64(guild.ID)); err != nil {
+			return err
 		}
 		if _, err := tx.Exec(ctx, `
 INSERT INTO guild_operation_states (guild_id, chapter_id, start_time, end_time, updated_at)
@@ -230,13 +233,14 @@ WHERE id = $1
 	return &guild, member, nil
 }
 
-func listGuildOperationEvents(ctx context.Context, q pgxQuerier, guildID uint32) ([]GuildOperationEvent, error) {
+func listGuildOperationEvents(ctx context.Context, q pgxQuerier, guildID uint32, chapterID uint32) ([]GuildOperationEvent, error) {
 	rows, err := q.Query(ctx, `
 SELECT event_tid, position, start_time, complete_time, efficiency, completed, shipinevent, attr_acc_list, attr_count_list, eventnodes, personship, formation_time
 FROM guild_operation_events
 WHERE guild_id = $1
+  AND event_tid = $2
 ORDER BY event_tid ASC
-`, int64(guildID))
+`, int64(guildID), int64(chapterID))
 	if err != nil {
 		return nil, err
 	}
@@ -428,38 +432,45 @@ ORDER BY node_id ASC
 
 func ClaimGuildReports(guildID uint32, reportIDs []uint32) ([]GuildReport, error) {
 	ctx := context.Background()
-	reports := make([]GuildReport, 0, len(reportIDs))
+	var reports []GuildReport
 	err := WithPGXTx(ctx, func(tx pgx.Tx) error {
-		for _, reportID := range reportIDs {
-			row := tx.QueryRow(ctx, `
+		var err error
+		reports, err = ClaimGuildReportsTx(ctx, tx, guildID, reportIDs)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return reports, nil
+}
+
+func ClaimGuildReportsTx(ctx context.Context, tx pgx.Tx, guildID uint32, reportIDs []uint32) ([]GuildReport, error) {
+	reports := make([]GuildReport, 0, len(reportIDs))
+	for _, reportID := range reportIDs {
+		row := tx.QueryRow(ctx, `
 SELECT id, guild_id, event_id, event_type, score, status, claimed, drop_type, drop_id, drop_count
 FROM guild_reports
 WHERE guild_id = $1
   AND id = $2
 FOR UPDATE
 `, int64(guildID), int64(reportID))
-			var report GuildReport
-			if err := row.Scan(&report.ID, &report.GuildID, &report.EventID, &report.EventType, &report.Score, &report.Status, &report.Claimed, &report.DropType, &report.DropID, &report.DropCount); err != nil {
-				return db.MapNotFound(err)
-			}
-			if report.Claimed {
-				return ErrGuildPermission
-			}
-			if _, err := tx.Exec(ctx, `
+		var report GuildReport
+		if err := row.Scan(&report.ID, &report.GuildID, &report.EventID, &report.EventType, &report.Score, &report.Status, &report.Claimed, &report.DropType, &report.DropID, &report.DropCount); err != nil {
+			return nil, db.MapNotFound(err)
+		}
+		if report.Claimed {
+			return nil, ErrGuildPermission
+		}
+		if _, err := tx.Exec(ctx, `
 UPDATE guild_reports
 SET claimed = true,
     status = 2
 WHERE guild_id = $1
   AND id = $2
 `, int64(guildID), int64(reportID)); err != nil {
-				return err
-			}
-			reports = append(reports, report)
+			return nil, err
 		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
+		reports = append(reports, report)
 	}
 	return reports, nil
 }

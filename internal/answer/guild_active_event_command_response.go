@@ -46,14 +46,10 @@ func GuildActiveEventCommandResponse(buffer *[]byte, client *connection.Client) 
 		switch {
 		case errors.Is(err, orm.ErrGuildPermission):
 			response.Result = proto.Uint32(guildEventResultFailure)
-		case errors.Is(err, orm.ErrGuildInvalidArgument):
-			response.Result = proto.Uint32(guildEventResultFailure)
+		case errors.Is(err, orm.ErrGuildInsufficientCap):
+			response.Result = proto.Uint32(guildEventResultInsufficientCapital)
 		default:
-			if guild.Capital < chapter.Consume {
-				response.Result = proto.Uint32(guildEventResultInsufficientCapital)
-			} else {
-				response.Result = proto.Uint32(guildEventResultInternal)
-			}
+			response.Result = proto.Uint32(guildEventResultInternal)
 		}
 		return client.SendMessage(61002, response)
 	}

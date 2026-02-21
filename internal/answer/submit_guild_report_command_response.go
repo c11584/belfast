@@ -29,26 +29,25 @@ func SubmitGuildReportCommandResponse(buffer *[]byte, client *connection.Client)
 		return client.SendMessage(61020, response)
 	}
 
-	reports, err := orm.ClaimGuildReports(guild.ID, ids)
+	dropMap := map[string]*protobuf.DROPINFO{}
+	err = orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
+		reports, err := orm.ClaimGuildReportsTx(context.Background(), tx, guild.ID, ids)
+		if err != nil {
+			return err
+		}
+		for _, report := range reports {
+			if report.DropCount == 0 {
+				continue
+			}
+			accumulateDrop(dropMap, report.DropType, report.DropID, report.DropCount)
+		}
+		if len(dropMap) == 0 {
+			return nil
+		}
+		return applyLoveLetterDropsTx(context.Background(), tx, client, dropMap)
+	})
 	if err != nil {
 		return client.SendMessage(61020, response)
-	}
-
-	dropMap := map[string]*protobuf.DROPINFO{}
-	for _, report := range reports {
-		if report.DropCount == 0 {
-			continue
-		}
-		accumulateDrop(dropMap, report.DropType, report.DropID, report.DropCount)
-	}
-
-	if len(dropMap) > 0 {
-		err = orm.WithPGXTx(context.Background(), func(tx pgx.Tx) error {
-			return applyLoveLetterDropsTx(context.Background(), tx, client, dropMap)
-		})
-		if err != nil {
-			return 0, 61020, err
-		}
 	}
 
 	response.Result = proto.Uint32(guildEventResultSuccess)
