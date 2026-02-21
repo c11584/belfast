@@ -38,6 +38,7 @@ func TestGuildDissolveRemovesGuildChatMessages(t *testing.T) {
 	guildID := createResp.GetId()
 
 	execAnswerExternalTestSQLT(t, "INSERT INTO guild_chat_messages (guild_id, sender_id, sent_at, content) VALUES ($1, $2, NOW(), 'cleanup me')", int64(guildID), int64(leaderID))
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_chat_messages (guild_id, sender_id, sent_at, content) VALUES (0, $1, NOW(), 'cleanup placeholder')", int64(leaderID))
 
 	dissolveBuf, _ := proto.Marshal(&protobuf.CS_60010{Id: proto.Uint32(guildID)})
 	if _, _, err := answer.GuildDissolve(&dissolveBuf, leaderClient); err != nil {
@@ -56,6 +57,13 @@ func TestGuildDissolveRemovesGuildChatMessages(t *testing.T) {
 	if count != 0 {
 		t.Fatalf("expected dissolved guild chat messages removed, got %d", count)
 	}
+
+	if err := db.DefaultStore.Pool.QueryRow(t.Context(), "SELECT COUNT(*) FROM guild_chat_messages WHERE guild_id = 0 AND sender_id = $1", int64(leaderID)).Scan(&count); err != nil {
+		t.Fatalf("count placeholder guild chat messages: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected dissolved guild placeholder chat messages removed, got %d", count)
+	}
 }
 
 func TestGuildChunk2FailurePaths(t *testing.T) {
@@ -69,6 +77,7 @@ func TestGuildChunk2FailurePaths(t *testing.T) {
 
 	leaderClient := &connection.Client{Commander: createGuildCommander(t, leaderID)}
 	deputyClient := &connection.Client{Commander: createGuildCommander(t, deputyID)}
+	createGuildCommander(t, memberID)
 
 	createBuf, _ := proto.Marshal(&protobuf.CS_60001{
 		Faction:   proto.Uint32(1),
