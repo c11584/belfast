@@ -39,12 +39,18 @@ func TestGuildApplyRequestListAndRejectFlow(t *testing.T) {
 	seedGuildCoreConfig(t)
 	leaderID := uint32(86401)
 	applicantID := uint32(86402)
-	cleanupGuildCoreData(t, leaderID, applicantID)
-	defer cleanupGuildCoreData(t, leaderID, applicantID)
+	memberID := uint32(86403)
+	cleanupGuildCoreData(t, leaderID, applicantID, memberID)
+	defer cleanupGuildCoreData(t, leaderID, applicantID, memberID)
 
 	leaderClient := &connection.Client{Commander: createGuildCommander(t, leaderID)}
 	applicantClient := &connection.Client{Commander: createGuildCommander(t, applicantID)}
+	memberClient := &connection.Client{Commander: createGuildCommander(t, memberID)}
 	guildID := createGuildForTest(t, leaderClient, fmt.Sprintf("REQ-%d", leaderID))
+
+	nowUnix := uint32(time.Now().Unix())
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_members (guild_id, commander_id, duty, liveness, pre_online_time, join_time) VALUES ($1, $2, 4, 0, $3, $3)", int64(guildID), int64(memberID), int64(nowUnix))
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_user_infos (commander_id, guild_id) VALUES ($1, $2) ON CONFLICT (commander_id) DO UPDATE SET guild_id = EXCLUDED.guild_id", int64(memberID), int64(guildID))
 
 	applyPayload, _ := proto.Marshal(&protobuf.CS_60005{Id: proto.Uint32(guildID), Content: proto.String("  hello guild  ")})
 	if _, _, err := answer.GuildApply(&applyPayload, applicantClient); err != nil {
@@ -71,6 +77,25 @@ func TestGuildApplyRequestListAndRejectFlow(t *testing.T) {
 	}
 	if request.GetContent() != "hello guild" {
 		t.Fatalf("expected trimmed content, got %q", request.GetContent())
+	}
+
+	rejectByMemberPayload, _ := proto.Marshal(&protobuf.CS_60022{PlayerId: proto.Uint32(applicantID)})
+	if _, _, err := answer.RejectGuildJoinRequest(&rejectByMemberPayload, memberClient); err != nil {
+		t.Fatalf("RejectGuildJoinRequest by member failed: %v", err)
+	}
+	rejectByMemberResponse := &protobuf.SC_60023{}
+	decodeTestPacket(t, memberClient, 60023, rejectByMemberResponse)
+	if rejectByMemberResponse.GetResult() == 0 {
+		t.Fatalf("expected reject failure for ordinary member")
+	}
+
+	if _, _, err := answer.GetGuildRequestsCommandResponse(&listPayload, leaderClient); err != nil {
+		t.Fatalf("GetGuildRequestsCommandResponse after member reject failed: %v", err)
+	}
+	listAfterMemberReject := &protobuf.SC_60004{}
+	decodeTestPacket(t, leaderClient, 60004, listAfterMemberReject)
+	if len(listAfterMemberReject.GetRequestList()) != 1 {
+		t.Fatalf("expected guild request to remain after member reject attempt, got %d", len(listAfterMemberReject.GetRequestList()))
 	}
 
 	rejectPayload, _ := proto.Marshal(&protobuf.CS_60022{PlayerId: proto.Uint32(applicantID)})

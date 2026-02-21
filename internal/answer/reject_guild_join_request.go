@@ -28,6 +28,9 @@ func RejectGuildJoinRequest(buffer *[]byte, client *connection.Client) (int, int
 	if err != nil {
 		return 0, 60023, err
 	}
+	if membership.Duty != orm.GuildDutyCommander && membership.Duty != orm.GuildDutyDeputy {
+		return client.SendMessage(60023, response)
+	}
 
 	if _, err := orm.DeleteGuildJoinRequest(membership.GuildID, request.GetPlayerId()); err != nil {
 		return 0, 60023, err
