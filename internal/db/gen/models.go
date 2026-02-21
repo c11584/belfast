@@ -498,6 +498,23 @@ type CommanderShipSkill struct {
 	Exp         int64
 }
 
+type CommanderShipyardBlueprint struct {
+	CommanderID    int64
+	BlueprintID    int64
+	ShipID         int64
+	StartTime      int64
+	BluePrintLevel int64
+	Exp            int64
+	StartDuration  int64
+}
+
+type CommanderShipyardState struct {
+	CommanderID              int64
+	ColdTime                 int64
+	DailyCatchupStrengthen   int64
+	DailyCatchupStrengthenUr int64
+}
+
 type CommanderSkillClass struct {
 	CommanderID int64
 	RoomID      int64
@@ -796,22 +813,25 @@ type GlobalSkinRestrictionWindow struct {
 }
 
 type Guild struct {
-	ID              int64
-	Policy          int64
-	Faction         int64
-	Name            string
-	Level           int64
-	Announce        string
-	Manifesto       string
-	Exp             int64
-	MemberCount     int64
-	ChangeFactionCd int64
-	KickLeaderCd    int64
-	Capital         int64
-	TechID          int64
-	CreatedAt       pgtype.Timestamp
-	UpdatedAt       pgtype.Timestamp
-	DeletedAt       pgtype.Timestamp
+	ID                    int64
+	Policy                int64
+	Faction               int64
+	Name                  string
+	Level                 int64
+	Announce              string
+	Manifesto             string
+	Exp                   int64
+	MemberCount           int64
+	ChangeFactionCd       int64
+	KickLeaderCd          int64
+	Capital               int64
+	TechID                int64
+	CreatedAt             pgtype.Timestamp
+	UpdatedAt             pgtype.Timestamp
+	DeletedAt             pgtype.Timestamp
+	BenefitFinishTime     int64
+	LastBenefitFinishTime int64
+	TechCancelCnt         int64
 }
 
 type GuildAssaultFleetSlot struct {
@@ -840,6 +860,18 @@ type GuildBossMissionFleet struct {
 	UpdatedAt   pgtype.Timestamp
 }
 
+type GuildCapitalLog struct {
+	ID          int64
+	GuildID     int64
+	Category    int64
+	MemberID    int64
+	Name        string
+	EventType   int64
+	EventTarget []byte
+	EventTime   int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type GuildChatMessage struct {
 	ID       int64
 	GuildID  int64
@@ -862,6 +894,14 @@ type GuildMember struct {
 	Liveness      int64
 	PreOnlineTime int64
 	JoinTime      int64
+}
+
+type GuildMemberRank struct {
+	GuildID  int64
+	RankType int64
+	Period   int64
+	UserID   int64
+	Count    int64
 }
 
 type GuildOperationBossRank struct {
@@ -968,6 +1008,22 @@ type GuildUserInfo struct {
 	WeeklyTaskFlag int64
 	ExtraDonate    int64
 	ExtraOperation int64
+	DonateTasks    []byte
+}
+
+type GuildUserTechnologyState struct {
+	CommanderID int64
+	TechGroup   int64
+	TechID      int64
+	UpdatedAt   pgtype.Timestamp
+}
+
+type GuildWeeklyTask struct {
+	GuildID      int64
+	TaskID       int64
+	Progress     int64
+	Monday0clock int64
+	UpdatedAt    pgtype.Timestamp
 }
 
 type IslandAchievementState struct {
@@ -1920,6 +1976,18 @@ type SurveyState struct {
 	CompletedAt pgtype.Timestamptz
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+type TechnologyResearchState struct {
+	CommanderID    int64
+	RefreshFlag    int64
+	RefreshDay     int64
+	CatchupVersion int64
+	CatchupTarget  int64
+	RefreshPools   []byte
+	Queue          []byte
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
 }
 
 type UserRegistrationChallenge struct {
