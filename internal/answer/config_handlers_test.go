@@ -538,7 +538,7 @@ func TestShipyardDataUsesBlueprintConfig(t *testing.T) {
 
 func TestTechnologyNationProxyUsesFleetTechConfig(t *testing.T) {
 	client := setupConfigTest(t)
-	seedConfigEntry(t, "ShareCfg/fleet_tech_group.json", "1", `{"id":1}`)
+	seedConfigEntry(t, "ShareCfg/fleet_tech_group.json", "1", `{"id":1,"techs":[1001]}`)
 	seedConfigEntry(t, "ShareCfg/fleet_tech_template.json", "1001", `{"add":[[[1,2],3,4]]}`)
 
 	buffer := []byte{}
@@ -551,11 +551,8 @@ func TestTechnologyNationProxyUsesFleetTechConfig(t *testing.T) {
 	if len(response.GetTechList()) != 1 || response.GetTechList()[0].GetGroupId() != 1 {
 		t.Fatalf("expected tech list to include group 1")
 	}
-	if len(response.GetTechsetList()) != 2 {
-		t.Fatalf("expected tech set list size 2")
-	}
-	if response.GetTechsetList()[0].GetAttrType() != 3 || response.GetTechsetList()[0].GetSetValue() != 4 {
-		t.Fatalf("expected tech set to use attr 3 value 4")
+	if len(response.GetTechsetList()) != 0 {
+		t.Fatalf("expected empty tech set override list by default")
 	}
 }
 
