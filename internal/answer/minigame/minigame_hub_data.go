@@ -1,4 +1,4 @@
-package answer
+package minigame
 
 import (
 	"github.com/ggmolly/belfast/internal/connection"
