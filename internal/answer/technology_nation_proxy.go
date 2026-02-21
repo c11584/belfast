@@ -35,12 +35,20 @@ func TechnologyNationProxy(buffer *[]byte, client *connection.Client) (int, int,
 		TechList:    make([]*protobuf.FLEETTECH, 0, len(groups)),
 		TechsetList: techSetList,
 	}
-	sort.Slice(state.Groups, func(i int, j int) bool {
-		return state.Groups[i].GroupID < state.Groups[j].GroupID
+	groupIDs := make([]uint32, 0, len(groups))
+	for groupID := range groups {
+		groupIDs = append(groupIDs, groupID)
+	}
+	sort.Slice(groupIDs, func(i int, j int) bool {
+		return groupIDs[i] < groupIDs[j]
 	})
-	for _, group := range state.Groups {
+	for _, groupID := range groupIDs {
+		group, ok := state.GetGroup(groupID)
+		if !ok {
+			continue
+		}
 		response.TechList = append(response.TechList, &protobuf.FLEETTECH{
-			GroupId:         proto.Uint32(group.GroupID),
+			GroupId:         proto.Uint32(groupID),
 			EffectTechId:    proto.Uint32(group.EffectTechID),
 			StudyTechId:     proto.Uint32(group.StudyTechID),
 			StudyFinishTime: proto.Uint32(group.StudyFinishTime),
