@@ -567,30 +567,147 @@ func collectResponsePackets(root string, modulePath string, constValues map[stri
 		if rel, err := filepath.Rel(root, path); err == nil {
 			relativePath = rel
 		}
-		ast.Inspect(file, func(node ast.Node) bool {
-			call, ok := node.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			if !isSendCall(call) {
-				return true
-			}
-			if len(call.Args) == 0 {
-				return true
-			}
-			packetID, ok := resolvePacketID(call.Args[0], imports, importPath, constValues)
-			if !ok {
-				return true
-			}
+		for packetID := range collectFileResponsePackets(file, imports, importPath, constValues) {
 			addResponseUsage(responses, packetID, relativePath)
-			return true
-		})
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return responses, nil
+}
+
+func collectFileResponsePackets(file *ast.File, imports map[string]string, importPath string, constValues map[string]int) map[int]bool {
+	packets := map[int]bool{}
+	localValues := collectLocalNumericBindings(file, imports, importPath, constValues)
+
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+
+		if isSendCall(call) {
+			if packetID, ok := resolveCallPacketID(call, 0, imports, importPath, constValues, localValues); ok {
+				packets[packetID] = true
+			}
+			return true
+		}
+
+		if !isBroadcastLikeCall(call) {
+			return true
+		}
+		for _, index := range []int{2, 3} {
+			if packetID, ok := resolveCallPacketID(call, index, imports, importPath, constValues, localValues); ok && looksLikePacketID(packetID) {
+				packets[packetID] = true
+			}
+		}
+		return true
+	})
+
+	return packets
+}
+
+func collectLocalNumericBindings(file *ast.File, imports map[string]string, importPath string, constValues map[string]int) map[string]int {
+	candidates := map[string]map[int]bool{}
+	addCandidate := func(name string, value int) {
+		if name == "" {
+			return
+		}
+		if _, ok := candidates[name]; !ok {
+			candidates[name] = map[int]bool{}
+		}
+		candidates[name][value] = true
+	}
+
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch value := node.(type) {
+		case *ast.ValueSpec:
+			for i, name := range value.Names {
+				if i >= len(value.Values) {
+					continue
+				}
+				resolved, ok := resolvePacketID(value.Values[i], imports, importPath, constValues)
+				if !ok {
+					continue
+				}
+				addCandidate(name.Name, resolved)
+			}
+		case *ast.AssignStmt:
+			for i, lhs := range value.Lhs {
+				if i >= len(value.Rhs) {
+					continue
+				}
+				ident, ok := lhs.(*ast.Ident)
+				if !ok || ident.Name == "_" {
+					continue
+				}
+				resolved, ok := resolvePacketID(value.Rhs[i], imports, importPath, constValues)
+				if !ok {
+					continue
+				}
+				addCandidate(ident.Name, resolved)
+			}
+		}
+		return true
+	})
+
+	bindings := map[string]int{}
+	for name, values := range candidates {
+		if len(values) != 1 {
+			continue
+		}
+		for value := range values {
+			bindings[name] = value
+		}
+	}
+	return bindings
+}
+
+func resolveCallPacketID(call *ast.CallExpr, argIndex int, imports map[string]string, importPath string, constValues map[string]int, localValues map[string]int) (int, bool) {
+	if call == nil || len(call.Args) <= argIndex {
+		return 0, false
+	}
+	packetID, ok := resolvePacketID(call.Args[argIndex], imports, importPath, constValues)
+	if ok {
+		return packetID, true
+	}
+	ident, ok := call.Args[argIndex].(*ast.Ident)
+	if !ok {
+		return 0, false
+	}
+	packetID, ok = localValues[ident.Name]
+	return packetID, ok
+}
+
+func isBroadcastLikeCall(call *ast.CallExpr) bool {
+	name := callName(call)
+	if name == "" {
+		return false
+	}
+	return strings.HasPrefix(name, "broadcast")
+}
+
+func callName(call *ast.CallExpr) string {
+	if call == nil {
+		return ""
+	}
+	switch fun := call.Fun.(type) {
+	case *ast.Ident:
+		return fun.Name
+	case *ast.SelectorExpr:
+		if fun.Sel == nil {
+			return ""
+		}
+		return fun.Sel.Name
+	default:
+		return ""
+	}
+}
+
+func looksLikePacketID(value int) bool {
+	return value >= 10000 && value <= 99999
 }
 
 func shouldSkipDir(root string, path string, name string) bool {
