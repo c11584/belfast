@@ -39,6 +39,11 @@ func readGuildShopSlotCount(t *testing.T, commanderID uint32, index uint32) uint
 	return uint32(queryAnswerExternalTestInt64(t, "SELECT count FROM guild_shop_goods WHERE commander_id = $1 AND \"index\" = $2", int64(commanderID), int64(index)))
 }
 
+func readGuildCoinAmount(t *testing.T, commanderID uint32) uint32 {
+	t.Helper()
+	return uint32(queryAnswerExternalTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = 8", int64(commanderID)))
+}
+
 func setupGuildShopPurchaseClient(t *testing.T, commanderID uint32, guildCoins uint32) *connection.Client {
 	t.Helper()
 	os.Setenv("MODE", "test")
@@ -106,7 +111,7 @@ func TestGuildShopPurchaseSuccessAggregatesDuplicates(t *testing.T) {
 	if drop := findGuildShopDrop(response.GetDropList(), 20002); drop == nil || drop.GetType() != consts.DROP_TYPE_ITEM || drop.GetNumber() != 2 {
 		t.Fatalf("expected item drop 20002 x2")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 80 {
+	if got := readGuildCoinAmount(t, commanderID); got != 80 {
 		t.Fatalf("expected guild coins 80, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 1); got != 2 {
@@ -133,7 +138,7 @@ func TestGuildShopPurchaseSupportsFixedGoodsWithoutSelection(t *testing.T) {
 	if drop := findGuildShopDrop(response.GetDropList(), 20003); drop == nil || drop.GetNumber() != 1 {
 		t.Fatalf("expected item drop 20003 x1")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 30 {
+	if got := readGuildCoinAmount(t, commanderID); got != 30 {
 		t.Fatalf("expected guild coins 30, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 2); got != 2 {
@@ -160,7 +165,7 @@ func TestGuildShopPurchaseFixedBundleConsumesSingleUnit(t *testing.T) {
 	if drop := findGuildShopDrop(response.GetDropList(), 20031); drop == nil || drop.GetNumber() != 1 {
 		t.Fatalf("expected item drop 20031 x1")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 30 {
+	if got := readGuildCoinAmount(t, commanderID); got != 30 {
 		t.Fatalf("expected guild coins 30, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 8); got != 2 {
@@ -187,7 +192,7 @@ func TestGuildShopPurchaseFixedBundleRejectsSelectedPayload(t *testing.T) {
 	if response.GetResult() == 0 {
 		t.Fatalf("expected non-zero result")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 40 {
+	if got := readGuildCoinAmount(t, commanderID); got != 40 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 9); got != 3 {
@@ -214,7 +219,7 @@ func TestGuildShopPurchaseRejectsStaleSlotGoodsID(t *testing.T) {
 	if response.GetResult() == 0 {
 		t.Fatalf("expected non-zero result")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 100 {
+	if got := readGuildCoinAmount(t, commanderID); got != 100 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 3); got != 2 {
@@ -241,7 +246,7 @@ func TestGuildShopPurchaseRejectsInvalidSelection(t *testing.T) {
 	if response.GetResult() == 0 {
 		t.Fatalf("expected non-zero result")
 	}
-	if got := client.Commander.GetResourceCount(8); got != 100 {
+	if got := readGuildCoinAmount(t, commanderID); got != 100 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 4); got != 4 {
@@ -268,7 +273,7 @@ func TestGuildShopPurchaseInsufficientCoinsDoesNotMutate(t *testing.T) {
 	if response.GetResult() != 2 {
 		t.Fatalf("expected result 2, got %d", response.GetResult())
 	}
-	if got := client.Commander.GetResourceCount(8); got != 9 {
+	if got := readGuildCoinAmount(t, commanderID); got != 9 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 5); got != 3 {
@@ -295,7 +300,7 @@ func TestGuildShopPurchaseInsufficientStockDoesNotMutate(t *testing.T) {
 	if response.GetResult() != 3 {
 		t.Fatalf("expected result 3, got %d", response.GetResult())
 	}
-	if got := client.Commander.GetResourceCount(8); got != 100 {
+	if got := readGuildCoinAmount(t, commanderID); got != 100 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 6); got != 1 {
@@ -322,7 +327,7 @@ func TestGuildShopPurchaseUnsupportedDropTypeRollsBack(t *testing.T) {
 	if response.GetResult() != 4 {
 		t.Fatalf("expected result 4, got %d", response.GetResult())
 	}
-	if got := client.Commander.GetResourceCount(8); got != 100 {
+	if got := readGuildCoinAmount(t, commanderID); got != 100 {
 		t.Fatalf("expected guild coins unchanged, got %d", got)
 	}
 	if got := readGuildShopSlotCount(t, commanderID, 7); got != 3 {
