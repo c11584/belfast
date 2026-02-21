@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.1
-// source: SC_70002.proto
+// source: SC_21246.proto
 
 package protobuf
 
@@ -21,28 +21,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type SC_70002 struct {
+type SC_21246 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *uint32                `protobuf:"varint,1,req,name=result" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SC_70002) Reset() {
-	*x = SC_70002{}
-	mi := &file_SC_70002_proto_msgTypes[0]
+func (x *SC_21246) Reset() {
+	*x = SC_21246{}
+	mi := &file_SC_21246_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SC_70002) String() string {
+func (x *SC_21246) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SC_70002) ProtoMessage() {}
+func (*SC_21246) ProtoMessage() {}
 
-func (x *SC_70002) ProtoReflect() protoreflect.Message {
-	mi := &file_SC_70002_proto_msgTypes[0]
+func (x *SC_21246) ProtoReflect() protoreflect.Message {
+	mi := &file_SC_21246_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -53,44 +53,44 @@ func (x *SC_70002) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SC_70002.ProtoReflect.Descriptor instead.
-func (*SC_70002) Descriptor() ([]byte, []int) {
-	return file_SC_70002_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use SC_21246.ProtoReflect.Descriptor instead.
+func (*SC_21246) Descriptor() ([]byte, []int) {
+	return file_SC_21246_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SC_70002) GetResult() uint32 {
+func (x *SC_21246) GetResult() uint32 {
 	if x != nil && x.Result != nil {
 		return *x.Result
 	}
 	return 0
 }
 
-var File_SC_70002_proto protoreflect.FileDescriptor
+var File_SC_21246_proto protoreflect.FileDescriptor
 
-const file_SC_70002_proto_rawDesc = "" +
+const file_SC_21246_proto_rawDesc = "" +
 	"\n" +
-	"\x0eSC_70002.proto\x12\abelfast\"\"\n" +
-	"\bSC_70002\x12\x16\n" +
+	"\x0eSC_21246.proto\x12\abelfast\"\"\n" +
+	"\bSC_21246\x12\x16\n" +
 	"\x06result\x18\x01 \x02(\rR\x06resultB\fZ\n" +
 	"./protobuf"
 
 var (
-	file_SC_70002_proto_rawDescOnce sync.Once
-	file_SC_70002_proto_rawDescData []byte
+	file_SC_21246_proto_rawDescOnce sync.Once
+	file_SC_21246_proto_rawDescData []byte
 )
 
-func file_SC_70002_proto_rawDescGZIP() []byte {
-	file_SC_70002_proto_rawDescOnce.Do(func() {
-		file_SC_70002_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_SC_70002_proto_rawDesc), len(file_SC_70002_proto_rawDesc)))
+func file_SC_21246_proto_rawDescGZIP() []byte {
+	file_SC_21246_proto_rawDescOnce.Do(func() {
+		file_SC_21246_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_SC_21246_proto_rawDesc), len(file_SC_21246_proto_rawDesc)))
 	})
-	return file_SC_70002_proto_rawDescData
+	return file_SC_21246_proto_rawDescData
 }
 
-var file_SC_70002_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_SC_70002_proto_goTypes = []any{
-	(*SC_70002)(nil), // 0: belfast.SC_70002
+var file_SC_21246_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_SC_21246_proto_goTypes = []any{
+	(*SC_21246)(nil), // 0: belfast.SC_21246
 }
-var file_SC_70002_proto_depIdxs = []int32{
+var file_SC_21246_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -98,26 +98,26 @@ var file_SC_70002_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_SC_70002_proto_init() }
-func file_SC_70002_proto_init() {
-	if File_SC_70002_proto != nil {
+func init() { file_SC_21246_proto_init() }
+func file_SC_21246_proto_init() {
+	if File_SC_21246_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_SC_70002_proto_rawDesc), len(file_SC_70002_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_SC_21246_proto_rawDesc), len(file_SC_21246_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_SC_70002_proto_goTypes,
-		DependencyIndexes: file_SC_70002_proto_depIdxs,
-		MessageInfos:      file_SC_70002_proto_msgTypes,
+		GoTypes:           file_SC_21246_proto_goTypes,
+		DependencyIndexes: file_SC_21246_proto_depIdxs,
+		MessageInfos:      file_SC_21246_proto_msgTypes,
 	}.Build()
-	File_SC_70002_proto = out.File
-	file_SC_70002_proto_goTypes = nil
-	file_SC_70002_proto_depIdxs = nil
+	File_SC_21246_proto = out.File
+	file_SC_21246_proto_goTypes = nil
+	file_SC_21246_proto_depIdxs = nil
 }

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.1
-// source: PB_ISLAND_PUBLIC.proto
+// source: PB_ISLAND_PUBLIC_KR.proto
 
 package protobuf
 
@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type PB_ISLAND_PUBLIC struct {
+type PB_ISLAND_PUBLIC_KR struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Id                 *uint32                `protobuf:"varint,1,req,name=id" json:"id,omitempty"`
 	Level              *uint32                `protobuf:"varint,2,req,name=level" json:"level,omitempty"`
@@ -43,26 +43,25 @@ type PB_ISLAND_PUBLIC struct {
 	TaskInfo           *PB_ISLAND_TASK        `protobuf:"bytes,18,req,name=task_info,json=taskInfo" json:"task_info,omitempty"`
 	TradeSys           *PB_ISLAND_TRADE_SYS   `protobuf:"bytes,19,req,name=trade_sys,json=tradeSys" json:"trade_sys,omitempty"`
 	BuildList          []*PB_ISLAND_BUILD     `protobuf:"bytes,20,rep,name=build_list,json=buildList" json:"build_list,omitempty"`
-	Treasure           *PB_ISLAND_TREASURE    `protobuf:"bytes,21,req,name=treasure" json:"treasure,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *PB_ISLAND_PUBLIC) Reset() {
-	*x = PB_ISLAND_PUBLIC{}
-	mi := &file_PB_ISLAND_PUBLIC_proto_msgTypes[0]
+func (x *PB_ISLAND_PUBLIC_KR) Reset() {
+	*x = PB_ISLAND_PUBLIC_KR{}
+	mi := &file_PB_ISLAND_PUBLIC_KR_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PB_ISLAND_PUBLIC) String() string {
+func (x *PB_ISLAND_PUBLIC_KR) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PB_ISLAND_PUBLIC) ProtoMessage() {}
+func (*PB_ISLAND_PUBLIC_KR) ProtoMessage() {}
 
-func (x *PB_ISLAND_PUBLIC) ProtoReflect() protoreflect.Message {
-	mi := &file_PB_ISLAND_PUBLIC_proto_msgTypes[0]
+func (x *PB_ISLAND_PUBLIC_KR) ProtoReflect() protoreflect.Message {
+	mi := &file_PB_ISLAND_PUBLIC_KR_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -73,164 +72,157 @@ func (x *PB_ISLAND_PUBLIC) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PB_ISLAND_PUBLIC.ProtoReflect.Descriptor instead.
-func (*PB_ISLAND_PUBLIC) Descriptor() ([]byte, []int) {
-	return file_PB_ISLAND_PUBLIC_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use PB_ISLAND_PUBLIC_KR.ProtoReflect.Descriptor instead.
+func (*PB_ISLAND_PUBLIC_KR) Descriptor() ([]byte, []int) {
+	return file_PB_ISLAND_PUBLIC_KR_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *PB_ISLAND_PUBLIC) GetId() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetId() uint32 {
 	if x != nil && x.Id != nil {
 		return *x.Id
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetLevel() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetLevel() uint32 {
 	if x != nil && x.Level != nil {
 		return *x.Level
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetExp() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetExp() uint32 {
 	if x != nil && x.Exp != nil {
 		return *x.Exp
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetStorageLevel() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetStorageLevel() uint32 {
 	if x != nil && x.StorageLevel != nil {
 		return *x.StorageLevel
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetName() string {
+func (x *PB_ISLAND_PUBLIC_KR) GetName() string {
 	if x != nil && x.Name != nil {
 		return *x.Name
 	}
 	return ""
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTech() *PB_ISLAND_TECH {
+func (x *PB_ISLAND_PUBLIC_KR) GetTech() *PB_ISLAND_TECH {
 	if x != nil {
 		return x.Tech
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetProsperity() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetProsperity() uint32 {
 	if x != nil && x.Prosperity != nil {
 		return *x.Prosperity
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetAbilityList() []uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetAbilityList() []uint32 {
 	if x != nil {
 		return x.AbilityList
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetProsperityRewarded() []uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetProsperityRewarded() []uint32 {
 	if x != nil {
 		return x.ProsperityRewarded
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetShipSys() *PB_ISLAND_SHIP_SYS {
+func (x *PB_ISLAND_PUBLIC_KR) GetShipSys() *PB_ISLAND_SHIP_SYS {
 	if x != nil {
 		return x.ShipSys
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetAgoraLevel() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetAgoraLevel() uint32 {
 	if x != nil && x.AgoraLevel != nil {
 		return *x.AgoraLevel
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetPlacedData() *PB_PLACEMENT_DATA {
+func (x *PB_ISLAND_PUBLIC_KR) GetPlacedData() *PB_PLACEMENT_DATA {
 	if x != nil {
 		return x.PlacedData
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetFlagList() []uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetFlagList() []uint32 {
 	if x != nil {
 		return x.FlagList
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTreeGiftTimestamp() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetTreeGiftTimestamp() uint32 {
 	if x != nil && x.TreeGiftTimestamp != nil {
 		return *x.TreeGiftTimestamp
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTreeGiftCount() uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetTreeGiftCount() uint32 {
 	if x != nil && x.TreeGiftCount != nil {
 		return *x.TreeGiftCount
 	}
 	return 0
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTreeGiftInvited() []uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetTreeGiftInvited() []uint32 {
 	if x != nil {
 		return x.TreeGiftInvited
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTreeGiftVisitor() []uint32 {
+func (x *PB_ISLAND_PUBLIC_KR) GetTreeGiftVisitor() []uint32 {
 	if x != nil {
 		return x.TreeGiftVisitor
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTaskInfo() *PB_ISLAND_TASK {
+func (x *PB_ISLAND_PUBLIC_KR) GetTaskInfo() *PB_ISLAND_TASK {
 	if x != nil {
 		return x.TaskInfo
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTradeSys() *PB_ISLAND_TRADE_SYS {
+func (x *PB_ISLAND_PUBLIC_KR) GetTradeSys() *PB_ISLAND_TRADE_SYS {
 	if x != nil {
 		return x.TradeSys
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetBuildList() []*PB_ISLAND_BUILD {
+func (x *PB_ISLAND_PUBLIC_KR) GetBuildList() []*PB_ISLAND_BUILD {
 	if x != nil {
 		return x.BuildList
 	}
 	return nil
 }
 
-func (x *PB_ISLAND_PUBLIC) GetTreasure() *PB_ISLAND_TREASURE {
-	if x != nil {
-		return x.Treasure
-	}
-	return nil
-}
+var File_PB_ISLAND_PUBLIC_KR_proto protoreflect.FileDescriptor
 
-var File_PB_ISLAND_PUBLIC_proto protoreflect.FileDescriptor
-
-const file_PB_ISLAND_PUBLIC_proto_rawDesc = "" +
+const file_PB_ISLAND_PUBLIC_KR_proto_rawDesc = "" +
 	"\n" +
-	"\x16PB_ISLAND_PUBLIC.proto\x12\abelfast\x1a\x15PB_ISLAND_BUILD.proto\x1a\x18PB_ISLAND_SHIP_SYS.proto\x1a\x14PB_ISLAND_TASK.proto\x1a\x14PB_ISLAND_TECH.proto\x1a\x19PB_ISLAND_TRADE_SYS.proto\x1a\x18PB_ISLAND_TREASURE.proto\x1a\x17PB_PLACEMENT_DATA.proto\"\xea\x06\n" +
-	"\x10PB_ISLAND_PUBLIC\x12\x0e\n" +
+	"\x19PB_ISLAND_PUBLIC_KR.proto\x12\abelfast\x1a\x15PB_ISLAND_BUILD.proto\x1a\x18PB_ISLAND_SHIP_SYS.proto\x1a\x14PB_ISLAND_TASK.proto\x1a\x14PB_ISLAND_TECH.proto\x1a\x19PB_ISLAND_TRADE_SYS.proto\x1a\x17PB_PLACEMENT_DATA.proto\"\xb4\x06\n" +
+	"\x13PB_ISLAND_PUBLIC_KR\x12\x0e\n" +
 	"\x02id\x18\x01 \x02(\rR\x02id\x12\x14\n" +
 	"\x05level\x18\x02 \x02(\rR\x05level\x12\x10\n" +
 	"\x03exp\x18\x03 \x02(\rR\x03exp\x12#\n" +
@@ -256,51 +248,48 @@ const file_PB_ISLAND_PUBLIC_proto_rawDesc = "" +
 	"\ttask_info\x18\x12 \x02(\v2\x17.belfast.PB_ISLAND_TASKR\btaskInfo\x129\n" +
 	"\ttrade_sys\x18\x13 \x02(\v2\x1c.belfast.PB_ISLAND_TRADE_SYSR\btradeSys\x127\n" +
 	"\n" +
-	"build_list\x18\x14 \x03(\v2\x18.belfast.PB_ISLAND_BUILDR\tbuildList\x127\n" +
-	"\btreasure\x18\x15 \x02(\v2\x1b.belfast.PB_ISLAND_TREASURER\btreasureB\fZ\n" +
+	"build_list\x18\x14 \x03(\v2\x18.belfast.PB_ISLAND_BUILDR\tbuildListB\fZ\n" +
 	"./protobuf"
 
 var (
-	file_PB_ISLAND_PUBLIC_proto_rawDescOnce sync.Once
-	file_PB_ISLAND_PUBLIC_proto_rawDescData []byte
+	file_PB_ISLAND_PUBLIC_KR_proto_rawDescOnce sync.Once
+	file_PB_ISLAND_PUBLIC_KR_proto_rawDescData []byte
 )
 
-func file_PB_ISLAND_PUBLIC_proto_rawDescGZIP() []byte {
-	file_PB_ISLAND_PUBLIC_proto_rawDescOnce.Do(func() {
-		file_PB_ISLAND_PUBLIC_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_PB_ISLAND_PUBLIC_proto_rawDesc), len(file_PB_ISLAND_PUBLIC_proto_rawDesc)))
+func file_PB_ISLAND_PUBLIC_KR_proto_rawDescGZIP() []byte {
+	file_PB_ISLAND_PUBLIC_KR_proto_rawDescOnce.Do(func() {
+		file_PB_ISLAND_PUBLIC_KR_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_PB_ISLAND_PUBLIC_KR_proto_rawDesc), len(file_PB_ISLAND_PUBLIC_KR_proto_rawDesc)))
 	})
-	return file_PB_ISLAND_PUBLIC_proto_rawDescData
+	return file_PB_ISLAND_PUBLIC_KR_proto_rawDescData
 }
 
-var file_PB_ISLAND_PUBLIC_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_PB_ISLAND_PUBLIC_proto_goTypes = []any{
-	(*PB_ISLAND_PUBLIC)(nil),    // 0: belfast.PB_ISLAND_PUBLIC
+var file_PB_ISLAND_PUBLIC_KR_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_PB_ISLAND_PUBLIC_KR_proto_goTypes = []any{
+	(*PB_ISLAND_PUBLIC_KR)(nil), // 0: belfast.PB_ISLAND_PUBLIC_KR
 	(*PB_ISLAND_TECH)(nil),      // 1: belfast.PB_ISLAND_TECH
 	(*PB_ISLAND_SHIP_SYS)(nil),  // 2: belfast.PB_ISLAND_SHIP_SYS
 	(*PB_PLACEMENT_DATA)(nil),   // 3: belfast.PB_PLACEMENT_DATA
 	(*PB_ISLAND_TASK)(nil),      // 4: belfast.PB_ISLAND_TASK
 	(*PB_ISLAND_TRADE_SYS)(nil), // 5: belfast.PB_ISLAND_TRADE_SYS
 	(*PB_ISLAND_BUILD)(nil),     // 6: belfast.PB_ISLAND_BUILD
-	(*PB_ISLAND_TREASURE)(nil),  // 7: belfast.PB_ISLAND_TREASURE
 }
-var file_PB_ISLAND_PUBLIC_proto_depIdxs = []int32{
-	1, // 0: belfast.PB_ISLAND_PUBLIC.tech:type_name -> belfast.PB_ISLAND_TECH
-	2, // 1: belfast.PB_ISLAND_PUBLIC.ship_sys:type_name -> belfast.PB_ISLAND_SHIP_SYS
-	3, // 2: belfast.PB_ISLAND_PUBLIC.placed_data:type_name -> belfast.PB_PLACEMENT_DATA
-	4, // 3: belfast.PB_ISLAND_PUBLIC.task_info:type_name -> belfast.PB_ISLAND_TASK
-	5, // 4: belfast.PB_ISLAND_PUBLIC.trade_sys:type_name -> belfast.PB_ISLAND_TRADE_SYS
-	6, // 5: belfast.PB_ISLAND_PUBLIC.build_list:type_name -> belfast.PB_ISLAND_BUILD
-	7, // 6: belfast.PB_ISLAND_PUBLIC.treasure:type_name -> belfast.PB_ISLAND_TREASURE
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+var file_PB_ISLAND_PUBLIC_KR_proto_depIdxs = []int32{
+	1, // 0: belfast.PB_ISLAND_PUBLIC_KR.tech:type_name -> belfast.PB_ISLAND_TECH
+	2, // 1: belfast.PB_ISLAND_PUBLIC_KR.ship_sys:type_name -> belfast.PB_ISLAND_SHIP_SYS
+	3, // 2: belfast.PB_ISLAND_PUBLIC_KR.placed_data:type_name -> belfast.PB_PLACEMENT_DATA
+	4, // 3: belfast.PB_ISLAND_PUBLIC_KR.task_info:type_name -> belfast.PB_ISLAND_TASK
+	5, // 4: belfast.PB_ISLAND_PUBLIC_KR.trade_sys:type_name -> belfast.PB_ISLAND_TRADE_SYS
+	6, // 5: belfast.PB_ISLAND_PUBLIC_KR.build_list:type_name -> belfast.PB_ISLAND_BUILD
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_PB_ISLAND_PUBLIC_proto_init() }
-func file_PB_ISLAND_PUBLIC_proto_init() {
-	if File_PB_ISLAND_PUBLIC_proto != nil {
+func init() { file_PB_ISLAND_PUBLIC_KR_proto_init() }
+func file_PB_ISLAND_PUBLIC_KR_proto_init() {
+	if File_PB_ISLAND_PUBLIC_KR_proto != nil {
 		return
 	}
 	file_PB_ISLAND_BUILD_proto_init()
@@ -308,23 +297,22 @@ func file_PB_ISLAND_PUBLIC_proto_init() {
 	file_PB_ISLAND_TASK_proto_init()
 	file_PB_ISLAND_TECH_proto_init()
 	file_PB_ISLAND_TRADE_SYS_proto_init()
-	file_PB_ISLAND_TREASURE_proto_init()
 	file_PB_PLACEMENT_DATA_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_PB_ISLAND_PUBLIC_proto_rawDesc), len(file_PB_ISLAND_PUBLIC_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_PB_ISLAND_PUBLIC_KR_proto_rawDesc), len(file_PB_ISLAND_PUBLIC_KR_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_PB_ISLAND_PUBLIC_proto_goTypes,
-		DependencyIndexes: file_PB_ISLAND_PUBLIC_proto_depIdxs,
-		MessageInfos:      file_PB_ISLAND_PUBLIC_proto_msgTypes,
+		GoTypes:           file_PB_ISLAND_PUBLIC_KR_proto_goTypes,
+		DependencyIndexes: file_PB_ISLAND_PUBLIC_KR_proto_depIdxs,
+		MessageInfos:      file_PB_ISLAND_PUBLIC_KR_proto_msgTypes,
 	}.Build()
-	File_PB_ISLAND_PUBLIC_proto = out.File
-	file_PB_ISLAND_PUBLIC_proto_goTypes = nil
-	file_PB_ISLAND_PUBLIC_proto_depIdxs = nil
+	File_PB_ISLAND_PUBLIC_KR_proto = out.File
+	file_PB_ISLAND_PUBLIC_KR_proto_goTypes = nil
+	file_PB_ISLAND_PUBLIC_KR_proto_depIdxs = nil
 }
