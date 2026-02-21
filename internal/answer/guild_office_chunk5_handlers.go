@@ -129,11 +129,11 @@ func GuildCommitDonate(buffer *[]byte, client *connection.Client) (int, int, err
 
 	guild, member, err := orm.GetGuildForCommander(client.Commander.CommanderID)
 	if err != nil {
-		if !errors.Is(err, db.ErrNotFound) {
-			return 0, 62003, err
+		if errors.Is(err, db.ErrNotFound) {
+			response.DonateTasks = tasks
+			return client.SendMessage(62003, response)
 		}
-		guild = nil
-		member = nil
+		return 0, 62003, err
 	}
 
 	ctx := context.Background()
@@ -313,7 +313,12 @@ func GuildGetSupplyAwardCommandResponse(buffer *[]byte, client *connection.Clien
 	ctx := context.Background()
 	dropType := consts.DROP_TYPE_ITEM
 	err = orm.WithPGXTx(ctx, func(tx pgx.Tx) error {
-		if err := client.Commander.AddItemTx(ctx, tx, rewardID, 1); err != nil {
+		if _, resourceErr := orm.GetResourceByID(rewardID); resourceErr == nil {
+			if err := client.Commander.AddResourceTx(ctx, tx, rewardID, 1); err != nil {
+				return err
+			}
+			dropType = consts.DROP_TYPE_RESOURCE
+		} else if err := client.Commander.AddItemTx(ctx, tx, rewardID, 1); err != nil {
 			if err := client.Commander.AddResourceTx(ctx, tx, rewardID, 1); err != nil {
 				return err
 			}
@@ -519,8 +524,11 @@ func GuildStartTechGroupCommandResponse(buffer *[]byte, client *connection.Clien
 		return client.SendMessage(62021, response)
 	}
 
-	guild, _, err := orm.GetGuildForCommander(client.Commander.CommanderID)
+	guild, member, err := orm.GetGuildForCommander(client.Commander.CommanderID)
 	if err != nil {
+		return client.SendMessage(62021, response)
+	}
+	if member.Duty != orm.GuildDutyCommander && member.Duty != orm.GuildDutyDeputy {
 		return client.SendMessage(62021, response)
 	}
 	if _, ok, err := loadGuildTechnologyTemplate(request.GetId()); err != nil {

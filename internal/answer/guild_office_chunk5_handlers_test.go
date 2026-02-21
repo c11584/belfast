@@ -21,7 +21,7 @@ func seedGuildOfficeChunkConfig(t *testing.T) {
 
 	mustUpsertConfigJSON(t, "ShareCfg/guildset.json", "guild_award_consume", map[string]any{"key_value": 3000})
 	mustUpsertConfigJSON(t, "ShareCfg/guildset.json", "guild_award_duration", map[string]any{"key_value": 86400})
-	mustUpsertConfigJSON(t, "ShareCfg/guildset.json", "guild_award_drop", map[string]any{"key_value": 53000})
+	mustUpsertConfigJSON(t, "ShareCfg/guildset.json", "guild_award_drop", map[string]any{"key_value": 8})
 	mustUpsertConfigJSON(t, "ShareCfg/guildset.json", "guild_tech_default", map[string]any{"key_value": 1000})
 
 	mustUpsertConfigJSON(t, "ShareCfg/guild_contribution_template.json", "1", map[string]any{
@@ -123,6 +123,9 @@ func TestGuildOfficeChunk5Handlers(t *testing.T) {
 	if buyPush.GetBenefitFinishTime() == 0 {
 		t.Fatalf("expected supply push finish time")
 	}
+	execAnswerExternalTestSQLT(t, "UPDATE guilds SET benefit_finish_time = $2 WHERE id = $1", int64(guildID), int64(time.Now().Add(time.Hour).Unix()))
+	execAnswerExternalTestSQLT(t, "UPDATE guild_members SET duty = 4, join_time = $3 WHERE guild_id = $1 AND commander_id = $2", int64(guildID), int64(memberID), int64(time.Now().Add(-48*time.Hour).Unix()))
+	execAnswerExternalTestSQLT(t, "UPDATE guild_user_infos SET benefit_time = 0 WHERE commander_id = $1", int64(memberID))
 
 	claimPayload, _ := proto.Marshal(&protobuf.CS_62009{Type: proto.Uint32(0)})
 	if _, _, err := answer.GuildGetSupplyAwardCommandResponse(&claimPayload, memberClient); err != nil {
@@ -236,5 +239,61 @@ func TestGuildOfficeChunk5Handlers(t *testing.T) {
 	decodeTestPacket(t, leaderClient, 60025, refreshResp)
 	if len(refreshResp.GetGuildList()) == 0 {
 		t.Fatalf("expected guild list entries")
+	}
+}
+
+func TestGuildCommitDonateRejectsNonMembers(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildOfficeChunkConfig(t)
+
+	commanderID := uint32(87201)
+	cleanupGuildCoreData(t, commanderID)
+	defer cleanupGuildCoreData(t, commanderID)
+
+	client := &connection.Client{Commander: createGuildCommander(t, commanderID), Hash: 84}
+	execAnswerExternalTestSQLT(t, "INSERT INTO owned_resources (commander_id, resource_id, amount) VALUES ($1, 1, 100) ON CONFLICT (commander_id, resource_id) DO UPDATE SET amount = EXCLUDED.amount", int64(commanderID))
+	if err := client.Commander.Load(); err != nil {
+		t.Fatalf("reload commander: %v", err)
+	}
+
+	payload, _ := proto.Marshal(&protobuf.CS_62002{Id: proto.Uint32(1)})
+	if _, _, err := answer.GuildCommitDonate(&payload, client); err != nil {
+		t.Fatalf("GuildCommitDonate failed: %v", err)
+	}
+	resp := &protobuf.SC_62003{}
+	decodeTestPacket(t, client, 62003, resp)
+	if resp.GetResult() == 0 {
+		t.Fatalf("expected donate failure for commander outside a guild")
+	}
+	guildCoin := queryAnswerExternalTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = 8), 0)", int64(commanderID))
+	if guildCoin != 0 {
+		t.Fatalf("expected no guild coin gain, got %d", guildCoin)
+	}
+}
+
+func TestGuildStartTechGroupRequiresOfficerDuty(t *testing.T) {
+	orm.InitDatabase()
+	seedGuildOfficeChunkConfig(t)
+
+	leaderID := uint32(87211)
+	memberID := uint32(87212)
+	cleanupGuildCoreData(t, leaderID, memberID)
+	defer cleanupGuildCoreData(t, leaderID, memberID)
+
+	leaderClient := &connection.Client{Commander: createGuildCommander(t, leaderID), Hash: 85}
+	memberClient := &connection.Client{Commander: createGuildCommander(t, memberID), Hash: 86}
+	guildID := createGuildForTest(t, leaderClient, fmt.Sprintf("OFFICER-%d", leaderID))
+	nowUnix := uint32(time.Now().Add(-26 * time.Hour).Unix())
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_members (guild_id, commander_id, duty, liveness, pre_online_time, join_time) VALUES ($1, $2, 4, 0, $3, $3)", int64(guildID), int64(memberID), int64(nowUnix))
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_user_infos (commander_id, guild_id, donate_count, benefit_time, weekly_task_flag, extra_donate, extra_operation) VALUES ($1, $2, 0, 0, 0, 0, 0) ON CONFLICT (commander_id) DO UPDATE SET guild_id = EXCLUDED.guild_id", int64(memberID), int64(guildID))
+
+	payload, _ := proto.Marshal(&protobuf.CS_62020{Id: proto.Uint32(1000)})
+	if _, _, err := answer.GuildStartTechGroupCommandResponse(&payload, memberClient); err != nil {
+		t.Fatalf("GuildStartTechGroupCommandResponse failed: %v", err)
+	}
+	resp := &protobuf.SC_62021{}
+	decodeTestPacket(t, memberClient, 62021, resp)
+	if resp.GetResult() == 0 {
+		t.Fatalf("expected non-officer to be denied starting guild tech")
 	}
 }
