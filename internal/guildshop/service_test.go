@@ -296,6 +296,37 @@ func TestRefreshIfNeededRefreshesOnTime(t *testing.T) {
 	}
 }
 
+func TestRefreshIfNeededRefreshesAtExactBoundary(t *testing.T) {
+	setupGuildShopTest(t)
+	seedCommander(t, 312)
+	now := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	seed := orm.GuildShopState{CommanderID: 312, RefreshCount: 3, NextRefreshTime: uint32(now.Unix())}
+	if err := orm.CreateGuildShopState(seed); err != nil {
+		t.Fatalf("seed state failed: %v", err)
+	}
+	seedGoods := []orm.GuildShopGood{{CommanderID: 312, Index: 1, GoodsID: 220, Count: 1}}
+	for i := range seedGoods {
+		if err := orm.CreateGuildShopGood(seedGoods[i]); err != nil {
+			t.Fatalf("seed goods failed: %v", err)
+		}
+	}
+	config := &Config{StoreEntries: []StoreEntry{{ID: 13, GoodsPurchaseLimit: 2}}, GoodsCount: 1}
+
+	state, goods, err := RefreshIfNeeded(312, now, config)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.RefreshCount != 0 {
+		t.Fatalf("expected refresh count reset at exact boundary")
+	}
+	if state.NextRefreshTime != nextDailyReset(now) {
+		t.Fatalf("expected next refresh time updated")
+	}
+	if len(goods) != 1 || goods[0].GoodsID != 13 || goods[0].Count != 2 {
+		t.Fatalf("expected goods refreshed at boundary")
+	}
+}
+
 func TestRefreshIfNeededRefreshesOnEmptyGoods(t *testing.T) {
 	setupGuildShopTest(t)
 	seedCommander(t, 32)

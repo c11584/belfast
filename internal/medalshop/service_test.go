@@ -34,6 +34,18 @@ func TestNextDailyReset(t *testing.T) {
 	}
 }
 
+func TestNextDailyResetAtExactMonthBoundary(t *testing.T) {
+	now := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	reset := nextMonthlyReset(now)
+	resetAt := time.Unix(int64(reset), 0).UTC()
+	if !resetAt.After(now) {
+		t.Fatalf("expected reset after boundary instant, got %v", resetAt)
+	}
+	if resetAt.Day() != 1 {
+		t.Fatalf("expected monthly boundary to land on day 1, got %v", resetAt)
+	}
+}
+
 func TestSelectMonthTemplateAcceptsEmptySingleTemplate(t *testing.T) {
 	payload, err := json.Marshal(monthShopTemplate{ID: 5, HonorMedalShopGoods: []uint32{}})
 	if err != nil {

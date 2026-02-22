@@ -107,6 +107,32 @@ func TestApplyCommanderMoraleRecoveryPreservesAboveCap(t *testing.T) {
 	}
 }
 
+func TestApplyCommanderMoraleRecoveryAnchorBoundaryAndNextTick(t *testing.T) {
+	initCommanderItemTestDB(t)
+	clearTable(t, &EventCollection{})
+	clearTable(t, &OwnedShip{})
+	clearTable(t, &Commander{})
+
+	seedMoraleCommanderAndShip(t, 7005, 8005, 100, 0, 0, false)
+
+	now := moraleTickSeconds - 1
+	nextTick, err := ApplyCommanderMoraleRecovery(7005, now)
+	if err != nil {
+		t.Fatalf("apply morale recovery: %v", err)
+	}
+	if nextTick != now+moraleTickSeconds {
+		t.Fatalf("expected next tick %d, got %d", now+moraleTickSeconds, nextTick)
+	}
+
+	energy, anchor := loadMoraleShipState(t, 7005, 8005)
+	if energy != 100 {
+		t.Fatalf("expected energy to stay at 100 before first full tick, got %d", energy)
+	}
+	if anchor != now {
+		t.Fatalf("expected zero anchor to initialize to now (%d), got %d", now, anchor)
+	}
+}
+
 func seedMoraleCommanderAndShip(t *testing.T, commanderID uint32, shipID uint32, energy uint32, state uint32, anchor uint32, proposed bool) {
 	t.Helper()
 	if _, err := db.DefaultStore.Pool.Exec(context.Background(), `

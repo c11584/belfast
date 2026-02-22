@@ -3,10 +3,12 @@ package answer
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ggmolly/belfast/internal/connection"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
+	"github.com/ggmolly/belfast/internal/scheduler"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -48,6 +50,60 @@ func TestWorldItemUseConsumesRecoverAPItem(t *testing.T) {
 	}
 	if runtime.ActionPower != 240 {
 		t.Fatalf("expected action power to increase from recover AP item, got %d", runtime.ActionPower)
+	}
+}
+
+func TestWorldItemUseRecoverAPSyncsWeeklyAndMonthlyBoundaries(t *testing.T) {
+	client := setupWorldItemUseTestClient(t)
+	seedWorldItemConfig(t, 251, `{"id":251,"usage":"usage_world_recoverAP","usage_arg":[20]}`)
+	if err := client.Commander.AddItem(251, 1); err != nil {
+		t.Fatalf("seed item: %v", err)
+	}
+
+	runtime, err := orm.LoadOrCreateWorldRuntime(client.Commander.CommanderID)
+	if err != nil {
+		t.Fatalf("load runtime: %v", err)
+	}
+	clock, err := scheduler.NewCurrentRegionResetClock()
+	if err != nil {
+		t.Fatalf("new reset clock: %v", err)
+	}
+	now := time.Now().UTC()
+	runtime.ActionPower = 150
+	runtime.LastRecoverTimestamp = uint32(now.Add(-20 * time.Minute).Unix())
+	runtime.StaminaExchangeTimes = 5
+	runtime.WeekStartUnix = 1
+	runtime.MonthKey = clock.CurrentMonthKey(now) - 1
+	if err := orm.SaveWorldRuntime(runtime); err != nil {
+		t.Fatalf("save runtime: %v", err)
+	}
+
+	payload := marshalPacketRequest(t, &protobuf.CS_33301{Id: proto.Uint32(251), Count: proto.Uint32(1), Arg: []uint32{}})
+	if _, _, err := WorldItemUse(&payload, client); err != nil {
+		t.Fatalf("world item use failed: %v", err)
+	}
+
+	response := &protobuf.SC_33302{}
+	decodeLoveLetterPacketMessage(t, client, 33302, response)
+	if response.GetResult() != worldItemUseResultSuccess {
+		t.Fatalf("expected success result, got %d", response.GetResult())
+	}
+
+	runtime, err = orm.LoadWorldRuntime(client.Commander.CommanderID)
+	if err != nil {
+		t.Fatalf("reload runtime: %v", err)
+	}
+	if runtime.StaminaExchangeTimes != 0 {
+		t.Fatalf("expected stamina exchange ladder reset across boundaries, got %d", runtime.StaminaExchangeTimes)
+	}
+	if runtime.WeekStartUnix == 1 {
+		t.Fatalf("expected week start to sync to current boundary")
+	}
+	if runtime.MonthKey != clock.CurrentMonthKey(time.Now().UTC()) {
+		t.Fatalf("expected month key synced to current month")
+	}
+	if runtime.ActionPower <= 170 {
+		t.Fatalf("expected AP to include regen + refill, got %d", runtime.ActionPower)
 	}
 }
 
