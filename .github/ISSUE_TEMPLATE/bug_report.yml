@@ -1,0 +1,91 @@
+name: Bug report
+description: Report a bug and include packet/log evidence.
+title: "bug: "
+labels:
+  - type/bug
+  - status/triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this.
+
+        Please include the affected region and attach evidence:
+        - packet capture (`.pcap`)
+        - ADB logcat dump captured with the ADB watcher (`-a` / `--adb`)
+
+        Helpful command when running Belfast locally:
+        `go run ./cmd/belfast -a`
+  - type: dropdown
+    id: region
+    attributes:
+      label: Region
+      description: Which Azur Lane region is affected?
+      options:
+        - EN
+        - CN
+        - JP
+        - KR
+        - TW
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Belfast build
+      description: Commit hash, release tag, or branch.
+      placeholder: main @ abc1234
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, in order.
+      placeholder: |
+        1. Start Belfast with region EN
+        2. Login on Android client
+        3. Open Dockyard
+        4. Observe disconnect
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: adb_logcat
+    attributes:
+      label: ADB logcat dump (`-a`)
+      description: |
+        Start Belfast with `-a` (`--adb`) and paste relevant logcat lines.
+        Large logs can be attached as files instead.
+      placeholder: Paste logcat output here
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: pcap
+    attributes:
+      label: Packet capture (`.pcap`)
+      description: Attach a `.pcap` file by drag-and-drop.
+      placeholder: Attached file name(s) and short note about capture context
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed secrets/private tokens from logs and attachments.
+          required: true
+        - label: I can reproduce this issue consistently.
+          required: false

@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest an improvement or new capability.
+title: "feat: "
+labels:
+  - type/feature
+  - status/triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Describe the problem first, then the proposed solution.
+  - type: dropdown
+    id: region
+    attributes:
+      label: Region impact
+      description: Which regions should this feature apply to?
+      multiple: true
+      options:
+        - EN
+        - CN
+        - JP
+        - KR
+        - TW
+        - All regions
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What is hard, missing, or painful today?
+      placeholder: When I ..., I cannot ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should Belfast do instead?
+      placeholder: Add a new endpoint/packet behavior that ...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or different approaches you evaluated.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, packet IDs, logs, or links.
+    validations:
+      required: false
