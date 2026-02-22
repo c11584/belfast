@@ -619,7 +619,8 @@ func TestResourcesInfoUsesTemplates(t *testing.T) {
 	seedConfigEntry(t, "ShareCfg/class_upgrade_template.json", "1", `{"level":3,"time":40}`)
 	seedConfigEntry(t, "ShareCfg/navalacademy_data_template.json", "1", `{"id":1}`)
 	seedConfigEntry(t, "ShareCfg/navalacademy_shoppingstreet_template.json", "1", `{"special_goods_num":9}`)
-	seedConfigEntry(t, "Runtime/naval_academy_runtime.json", "1", `{"commander_id":1,"oil_well_level":2,"gold_well_level":1,"oil_upgrade_complete_time":123,"gold_upgrade_complete_time":456}`)
+	now := uint32(time.Now().UTC().Unix())
+	seedConfigEntry(t, "Runtime/naval_academy_runtime.json", "1", fmt.Sprintf(`{"commander_id":1,"oil_well_level":2,"gold_well_level":1,"oil_upgrade_complete_time":%d,"gold_upgrade_complete_time":%d}`, now+123, now+456))
 
 	buffer := []byte{}
 	if _, _, err := ResourcesInfo(&buffer, client); err != nil {
@@ -631,7 +632,7 @@ func TestResourcesInfoUsesTemplates(t *testing.T) {
 	if response.GetOilWellLevel() != 2 || response.GetClassLv() != 3 {
 		t.Fatalf("expected oil level 2 and class level 3")
 	}
-	if response.GetOilWellLvUpTime() != 123 || response.GetGoldWellLvUpTime() != 456 {
+	if response.GetOilWellLvUpTime() != now+123 || response.GetGoldWellLvUpTime() != now+456 {
 		t.Fatalf("expected upgrade timers from runtime")
 	}
 	if response.GetSkillClassNum() != 1 || response.GetDailyFinishBuffCnt() != 9 {
@@ -668,16 +669,16 @@ func TestLastLoginCatchesUpNavalAcademyResources(t *testing.T) {
 	collectAt := uint32(now.Unix()) - 7200
 	seedConfigEntry(t, "Runtime/naval_academy_runtime.json", "1", fmt.Sprintf(`{"commander_id":1,"oil_well_level":1,"gold_well_level":1,"oil_collect_timestamp":%d,"gold_collect_timestamp":%d}`, collectAt, collectAt))
 
-	oilBefore := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(client.Commander.CommanderID), int64(2))
-	coinBefore := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(client.Commander.CommanderID), int64(1))
+	oilBefore := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(2))
+	coinBefore := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(1))
 
 	buffer := []byte{}
 	if _, _, err := LastLogin(&buffer, client); err != nil {
 		t.Fatalf("last login failed: %v", err)
 	}
 
-	oilAfter := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(client.Commander.CommanderID), int64(2))
-	coinAfter := queryAnswerTestInt64(t, "SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2", int64(client.Commander.CommanderID), int64(1))
+	oilAfter := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(2))
+	coinAfter := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(1))
 
 	oilDelta := oilAfter - oilBefore
 	coinDelta := coinAfter - coinBefore
