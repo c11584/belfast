@@ -1,7 +1,6 @@
 package answer
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/ggmolly/belfast/internal/connection"
@@ -24,24 +23,21 @@ type monthShopTemplate struct {
 }
 
 func ShopData(buffer *[]byte, client *connection.Client) (int, int, error) {
+	now := time.Now()
+	monthKey := currentMonthKey(now)
 	response := protobuf.SC_16200{
-		Month: proto.Uint32(uint32(time.Now().Month())),
+		Month: proto.Uint32(monthKey % 100),
 	}
-	monthKey := uint32(time.Now().Year()*100 + int(time.Now().Month()))
 	counts, err := orm.ListMonthShopPurchaseCounts(client.Commander.CommanderID, monthKey)
 	if err != nil {
 		return 0, 16200, err
 	}
-	entries, err := orm.ListConfigEntries("ShareCfg/month_shop_template.json")
+	template, ok, err := loadMonthShopTemplate(now)
 	if err != nil {
 		return 0, 16200, err
 	}
-	if len(entries) == 0 {
+	if !ok {
 		return client.SendMessage(16200, &response)
-	}
-	var template monthShopTemplate
-	if err := json.Unmarshal(entries[0].Data, &template); err != nil {
-		return 0, 16200, err
 	}
 	blueprints := append([]uint32{}, template.BlueprintShopGoods...)
 	blueprints = append(blueprints, template.BlueprintShopLimit...)

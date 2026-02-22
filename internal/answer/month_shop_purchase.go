@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ggmolly/belfast/internal/connection"
 	"github.com/ggmolly/belfast/internal/consts"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
+	"github.com/ggmolly/belfast/internal/shopreset"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/protobuf/proto"
 )
@@ -23,6 +25,20 @@ type monthShopGood struct {
 	CommodityID      uint32
 	Num              uint32
 	NumLimit         uint32
+}
+
+type monthShopTemplateEntry struct {
+	ID                  uint32   `json:"id"`
+	CoreShopGoods       []uint32 `json:"core_shop_goods"`
+	BlueprintShopGoods  []uint32 `json:"blueprint_shop_goods"`
+	BlueprintShopLimit  []uint32 `json:"blueprint_shop_limit_goods"`
+	HonorMedalShopGoods []uint32 `json:"honormedal_shop_goods"`
+	BlueprintShopLimit2 []uint32 `json:"blueprint_shop_limit_goods_2"`
+	BlueprintShopGoods2 []uint32 `json:"blueprint_shop_goods_2"`
+	BlueprintShopLimit3 []uint32 `json:"blueprint_shop_limit_goods_3"`
+	BlueprintShopGoods3 []uint32 `json:"blueprint_shop_goods_3"`
+	BlueprintShopGoods4 []uint32 `json:"blueprint_shop_goods_4"`
+	BlueprintShopLimit4 []uint32 `json:"blueprint_shop_limit_goods_4"`
 }
 
 type activityShopTemplateEntry struct {
@@ -56,7 +72,7 @@ func MonthShopPurchase(buffer *[]byte, client *connection.Client) (int, int, err
 		return client.SendMessage(16202, &response)
 	}
 
-	monthShop, ok, err := loadMonthShopTemplate()
+	monthShop, ok, err := loadMonthShopTemplate(time.Now())
 	if err != nil {
 		return 0, 16202, err
 	}
@@ -96,7 +112,7 @@ func MonthShopPurchase(buffer *[]byte, client *connection.Client) (int, int, err
 	sentinelLimit := errors.New("limit")
 	sentinelUnsupported := errors.New("unsupported")
 
-	monthKey := uint32(time.Now().Year()*100 + int(time.Now().Month()))
+	monthKey := currentMonthKey(time.Now())
 	commanderID := client.Commander.CommanderID
 	ctx := context.Background()
 	err = orm.WithPGXTx(ctx, func(tx pgx.Tx) error {
@@ -184,7 +200,7 @@ func buildDrop(typ uint32, id uint32, amount uint32) *protobuf.DROPINFO {
 	return &protobuf.DROPINFO{Type: proto.Uint32(typ), Id: proto.Uint32(id), Number: proto.Uint32(amount)}
 }
 
-func loadMonthShopTemplate() (*monthShopTemplate, bool, error) {
+func loadMonthShopTemplate(now time.Time) (*monthShopTemplate, bool, error) {
 	entries, err := orm.ListConfigEntries("ShareCfg/month_shop_template.json")
 	if err != nil {
 		return nil, false, err
@@ -192,11 +208,67 @@ func loadMonthShopTemplate() (*monthShopTemplate, bool, error) {
 	if len(entries) == 0 {
 		return nil, false, nil
 	}
-	var out monthShopTemplate
-	if err := json.Unmarshal(entries[0].Data, &out); err != nil {
-		return nil, false, err
+	templates := make([]monthShopTemplateEntry, 0, len(entries))
+	for _, entry := range entries {
+		var single monthShopTemplateEntry
+		if err := json.Unmarshal(entry.Data, &single); err == nil && hasMonthShopTemplateContent(single) {
+			templates = append(templates, single)
+			continue
+		}
+		var list []monthShopTemplateEntry
+		if err := json.Unmarshal(entry.Data, &list); err != nil {
+			return nil, false, err
+		}
+		templates = append(templates, list...)
+	}
+	if len(templates) == 0 {
+		return nil, false, nil
+	}
+
+	selected := selectMonthShopTemplate(templates, now)
+	out := monthShopTemplate{
+		CoreShopGoods:       selected.CoreShopGoods,
+		BlueprintShopGoods:  selected.BlueprintShopGoods,
+		BlueprintShopLimit:  selected.BlueprintShopLimit,
+		HonorMedalShopGoods: selected.HonorMedalShopGoods,
+		BlueprintShopLimit2: selected.BlueprintShopLimit2,
+		BlueprintShopGoods2: selected.BlueprintShopGoods2,
+		BlueprintShopLimit3: selected.BlueprintShopLimit3,
+		BlueprintShopGoods3: selected.BlueprintShopGoods3,
+		BlueprintShopGoods4: selected.BlueprintShopGoods4,
+		BlueprintShopLimit4: selected.BlueprintShopLimit4,
 	}
 	return &out, true, nil
+}
+
+func selectMonthShopTemplate(entries []monthShopTemplateEntry, now time.Time) monthShopTemplateEntry {
+	month := currentMonthKey(now) % 100
+	for _, entry := range entries {
+		if entry.ID == month {
+			return entry
+		}
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].ID < entries[j].ID
+	})
+	index := int((month - 1) % uint32(len(entries)))
+	return entries[index]
+}
+
+func hasMonthShopTemplateContent(entry monthShopTemplateEntry) bool {
+	if entry.ID != 0 {
+		return true
+	}
+	return len(entry.CoreShopGoods) > 0 || len(entry.BlueprintShopGoods) > 0 || len(entry.BlueprintShopLimit) > 0 || len(entry.HonorMedalShopGoods) > 0
+}
+
+func currentMonthKey(now time.Time) uint32 {
+	window, err := shopreset.MonthlyWindow(now)
+	if err == nil {
+		return window.Key
+	}
+	utc := now.UTC()
+	return uint32(utc.Year()*100 + int(utc.Month()))
 }
 
 func monthShopIDsByType(template *monthShopTemplate, typ uint32) []uint32 {
