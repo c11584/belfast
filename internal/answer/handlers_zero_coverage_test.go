@@ -378,6 +378,36 @@ func TestLastLoginAndOnlineInfo(t *testing.T) {
 	}
 }
 
+func TestLastLoginReloadsRecoveredMoraleInMemory(t *testing.T) {
+	client := setupHandlerCommander(t)
+	shipID := uint32(990001)
+	execAnswerTestSQLT(t, "INSERT INTO ships (template_id, name, english_name, rarity_id, star, type, nationality, build_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", int64(1001), "Morale Ship", "Morale Ship", int64(2), int64(1), int64(1), int64(1), int64(1))
+	anchor := uint32(time.Now().Unix()) - 360
+	execAnswerTestSQLT(t, "INSERT INTO owned_ships (id, owner_id, ship_id, level, max_level, energy, state_info1, create_time, change_name_timestamp) VALUES ($1, $2, $3, 1, 100, 100, $4, NOW(), NOW())", int64(shipID), int64(client.Commander.CommanderID), int64(1001), int64(anchor))
+	if err := client.Commander.Load(); err != nil {
+		t.Fatalf("reload commander: %v", err)
+	}
+
+	ship, ok := client.Commander.OwnedShipsMap[shipID]
+	if !ok {
+		t.Fatalf("expected seeded ship in memory map")
+	}
+	if ship.Energy != 100 {
+		t.Fatalf("expected initial in-memory energy 100")
+	}
+
+	buffer := []byte{}
+	client.Buffer.Reset()
+	if _, _, err := LastLogin(&buffer, client); err != nil {
+		t.Fatalf("last login failed: %v", err)
+	}
+
+	dbEnergy := queryAnswerTestInt64(t, "SELECT energy FROM owned_ships WHERE owner_id = $1 AND id = $2", int64(client.Commander.CommanderID), int64(shipID))
+	if int64(client.Commander.OwnedShipsMap[shipID].Energy) != dbEnergy {
+		t.Fatalf("expected in-memory energy %d to match db", dbEnergy)
+	}
+}
+
 func TestChatRoomChange(t *testing.T) {
 	client := setupHandlerCommander(t)
 	client.Commander.RoomID = 1

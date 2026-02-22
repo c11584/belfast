@@ -74,6 +74,7 @@ WHERE owner_id = $1
 			}
 		} else if shipType == 2 {
 			ship.State = 2
+			ship.StateInfo1 = now
 		}
 		if err := saveDormOwnedShipTx(ctx, tx, &ship); err != nil {
 			return err
@@ -125,7 +126,7 @@ WHERE os.owner_id = $1
 			return err
 		}
 		ship.State = 0
-		ship.StateInfo1 = 0
+		ship.StateInfo1 = uint32(time.Now().Unix())
 		ship.StateInfo2 = 0
 		ship.StateInfo3 = 0
 		ship.StateInfo4 = 0
