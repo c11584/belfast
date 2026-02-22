@@ -527,6 +527,9 @@ func TestShopDataUsesMonthShopConfig(t *testing.T) {
 	if len(response.GetNormalShopList()) != 1 || response.GetNormalShopList()[0].GetShopId() != 300 {
 		t.Fatalf("expected normal shop list to include 300")
 	}
+	if response.GetMonth() != currentMonthKey(time.Now())%100 {
+		t.Fatalf("expected month to match region month key")
+	}
 }
 
 func TestShipyardDataUsesBlueprintConfig(t *testing.T) {

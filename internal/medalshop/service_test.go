@@ -1,8 +1,11 @@
 package medalshop
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/ggmolly/belfast/internal/orm"
 )
 
 func TestBuildGoods(t *testing.T) {
@@ -28,5 +31,23 @@ func TestNextDailyReset(t *testing.T) {
 	resetAt := time.Unix(int64(reset), 0).UTC()
 	if resetAt.Day() != 1 {
 		t.Fatalf("expected reset to land on first day of month, got %v", resetAt)
+	}
+}
+
+func TestSelectMonthTemplateAcceptsEmptySingleTemplate(t *testing.T) {
+	payload, err := json.Marshal(monthShopTemplate{ID: 5, HonorMedalShopGoods: []uint32{}})
+	if err != nil {
+		t.Fatalf("marshal template: %v", err)
+	}
+
+	goods, err := selectMonthTemplate([]orm.ConfigEntry{{Data: payload}}, time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("select month template: %v", err)
+	}
+	if goods == nil {
+		t.Fatalf("expected empty list, got nil")
+	}
+	if len(goods) != 0 {
+		t.Fatalf("expected empty goods list, got %d", len(goods))
 	}
 }

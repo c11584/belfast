@@ -24,10 +24,10 @@ type monthShopTemplate struct {
 
 func ShopData(buffer *[]byte, client *connection.Client) (int, int, error) {
 	now := time.Now()
-	response := protobuf.SC_16200{
-		Month: proto.Uint32(uint32(now.Month())),
-	}
 	monthKey := currentMonthKey(now)
+	response := protobuf.SC_16200{
+		Month: proto.Uint32(monthKey % 100),
+	}
 	counts, err := orm.ListMonthShopPurchaseCounts(client.Commander.CommanderID, monthKey)
 	if err != nil {
 		return 0, 16200, err

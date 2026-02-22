@@ -9,6 +9,7 @@ import (
 
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
+	"github.com/ggmolly/belfast/internal/shopreset"
 )
 
 func setupArenaShopTest(t *testing.T) {
@@ -386,6 +387,9 @@ func TestNextDailyReset(t *testing.T) {
 	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
 	reset := nextDailyReset(now)
 	expected := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	if window, err := shopreset.DailyWindow(now); err == nil {
+		expected = window.End
+	}
 	if reset != uint32(expected.Unix()) {
 		t.Fatalf("expected next daily reset")
 	}

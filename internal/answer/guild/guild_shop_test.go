@@ -159,6 +159,7 @@ func TestGuildShopManualRefreshUsesCostLadder(t *testing.T) {
 	defer cleanupGuildShopData(t, commanderID)
 
 	execAnswerExternalTestSQLT(t, "INSERT INTO guild_shop_states (commander_id, refresh_count, next_refresh_time) VALUES ($1, $2, $3)", int64(commanderID), int64(1), int64(time.Now().Add(time.Hour).Unix()))
+	execAnswerExternalTestSQLT(t, "INSERT INTO guild_shop_goods (commander_id, index, goods_id, count) VALUES ($1, $2, $3, $4)", int64(commanderID), int64(1), int64(1), int64(1))
 
 	payload := &protobuf.CS_60033{Type: proto.Uint32(2)}
 	buf, err := proto.Marshal(payload)

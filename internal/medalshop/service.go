@@ -170,7 +170,7 @@ func selectMonthTemplate(entries []orm.ConfigEntry, now time.Time) ([]uint32, er
 	templates := make([]monthShopTemplate, 0, len(entries))
 	for _, entry := range entries {
 		var single monthShopTemplate
-		if err := json.Unmarshal(entry.Data, &single); err == nil && len(single.HonorMedalShopGoods) > 0 {
+		if err := json.Unmarshal(entry.Data, &single); err == nil && (single.ID != 0 || len(single.HonorMedalShopGoods) > 0) {
 			templates = append(templates, single)
 			continue
 		}
