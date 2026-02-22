@@ -732,6 +732,30 @@ func TestLastLoginPreservesPreUpgradeNavalAcademyAccrual(t *testing.T) {
 	}
 }
 
+func TestLastLoginDoesNotGrantCatchupWithoutCollectionAnchor(t *testing.T) {
+	client := setupConfigTest(t)
+	seedConfigEntry(t, "ShareCfg/oilfield_template.json", "1", `{"level":1,"production":120,"store":9999,"hour_time":1,"time":10}`)
+	seedConfigEntry(t, "Runtime/naval_academy_runtime.json", "1", `{"commander_id":1,"oil_well_level":1,"gold_well_level":1}`)
+
+	oilBefore := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(2))
+	coinBefore := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(1))
+
+	buffer := []byte{}
+	if _, _, err := LastLogin(&buffer, client); err != nil {
+		t.Fatalf("last login failed: %v", err)
+	}
+
+	oilAfter := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(2))
+	coinAfter := queryAnswerTestInt64(t, "SELECT COALESCE((SELECT amount FROM owned_resources WHERE commander_id = $1 AND resource_id = $2), 0)", int64(client.Commander.CommanderID), int64(1))
+
+	if oilAfter-oilBefore != 0 {
+		t.Fatalf("expected no oil catch-up without collection anchor, got %d", oilAfter-oilBefore)
+	}
+	if coinAfter-coinBefore != 0 {
+		t.Fatalf("expected no coin catch-up without collection anchor, got %d", coinAfter-coinBefore)
+	}
+}
+
 func TestEquipedSpecialWeaponsUsesConfig(t *testing.T) {
 	client := setupConfigTest(t)
 	seedConfigEntry(t, "ShareCfg/spweapon_data_statistics.json", "1", `{"id":1}`)

@@ -214,6 +214,32 @@ func TestRefreshIfNeededResets(t *testing.T) {
 	}
 }
 
+func TestRefreshIfNeededResetsAtExactBoundary(t *testing.T) {
+	setupArenaShopTest(t)
+	now := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	seedCommander(t, 311)
+	seed := orm.ArenaShopState{
+		CommanderID:     311,
+		FlashCount:      2,
+		LastRefreshTime: 10,
+		NextFlashTime:   uint32(now.Unix()),
+	}
+	if err := orm.CreateArenaShopState(seed); err != nil {
+		t.Fatalf("seed state failed: %v", err)
+	}
+
+	state, err := RefreshIfNeeded(311, now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.FlashCount != 0 {
+		t.Fatalf("expected flash count reset at exact boundary")
+	}
+	if state.NextFlashTime != nextDailyReset(now) {
+		t.Fatalf("expected next reset computed from boundary time")
+	}
+}
+
 func TestRefreshIfNeededEnsureStateError(t *testing.T) {
 	withNilDefaultStore(t)
 
