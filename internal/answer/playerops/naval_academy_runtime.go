@@ -84,6 +84,17 @@ func applyNavalAcademyLoginCatchup(client *connection.Client, now time.Time) err
 	}
 	runtime.GoldCollectTimestamp = nowUnix
 
+	if runtime.OilUpgradeCompleteTime > 0 && runtime.OilUpgradeCompleteTime <= nowUnix {
+		runtime.OilUpgradeStartTime = 0
+		runtime.OilUpgradeCompleteTime = 0
+		runtimeChanged = true
+	}
+	if runtime.GoldUpgradeCompleteTime > 0 && runtime.GoldUpgradeCompleteTime <= nowUnix {
+		runtime.GoldUpgradeStartTime = 0
+		runtime.GoldUpgradeCompleteTime = 0
+		runtimeChanged = true
+	}
+
 	if runtimeChanged || oilGain > 0 || coinGain > 0 {
 		if err := orm.SaveNavalAcademyRuntime(runtime); err != nil {
 			return err
@@ -154,8 +165,8 @@ func normalizeNavalAcademyRuntime(runtime *orm.NavalAcademyRuntime, templates *a
 		changed = true
 	}
 
-	changed = finalizeUpgradeIfDone(&runtime.OilWellLevel, &runtime.OilUpgradeStartTime, &runtime.OilUpgradeCompleteTime, &runtime.OilCollectTimestamp, templates.maxLevel, nowUnix, changed)
-	changed = finalizeUpgradeIfDone(&runtime.GoldWellLevel, &runtime.GoldUpgradeStartTime, &runtime.GoldUpgradeCompleteTime, &runtime.GoldCollectTimestamp, templates.maxLevel, nowUnix, changed)
+	changed = finalizeUpgradeIfDone(&runtime.OilWellLevel, &runtime.OilUpgradeStartTime, &runtime.OilUpgradeCompleteTime, templates.maxLevel, nowUnix, changed)
+	changed = finalizeUpgradeIfDone(&runtime.GoldWellLevel, &runtime.GoldUpgradeStartTime, &runtime.GoldUpgradeCompleteTime, templates.maxLevel, nowUnix, changed)
 
 	if runtime.OilUpgradeCompleteTime > nowUnix && runtime.OilUpgradeStartTime == 0 {
 		runtime.OilUpgradeStartTime = inferUpgradeStart(runtime.OilWellLevel, runtime.OilUpgradeCompleteTime, templates)
@@ -194,19 +205,15 @@ func clampAcademyLevel(level uint32, maxLevel uint32, changed bool) (uint32, boo
 	return level, changed
 }
 
-func finalizeUpgradeIfDone(level *uint32, start *uint32, finish *uint32, collect *uint32, maxLevel uint32, nowUnix uint32, changed bool) bool {
+func finalizeUpgradeIfDone(level *uint32, start *uint32, finish *uint32, maxLevel uint32, nowUnix uint32, changed bool) bool {
 	if *finish == 0 || *finish > nowUnix {
 		return changed
 	}
 	if *level < maxLevel {
 		*level = *level + 1
+		changed = true
 	}
-	if *collect < *finish {
-		*collect = *finish
-	}
-	*start = 0
-	*finish = 0
-	return true
+	return changed
 }
 
 func inferUpgradeStart(level uint32, finish uint32, templates *academyRuntimeTemplates) uint32 {
