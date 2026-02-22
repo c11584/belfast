@@ -496,7 +496,6 @@ func importConfigEntriesSQLC(ctx context.Context, region string, q *gen.Queries)
 			"sharecfgdata/chapter_template.json",
 			"sharecfgdata/chapter_template_loop.json",
 			"sharecfgdata/ship_data_template.json",
-			"sharecfgdata/skill_data_template.json",
 			"ShareCfg/item_data_frame.json",
 			"ShareCfg/item_data_chat.json",
 			"ShareCfg/item_data_battleui.json",

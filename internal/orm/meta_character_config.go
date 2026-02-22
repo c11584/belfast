@@ -13,8 +13,7 @@ const (
 	shipMetaSkillTaskCategory   = "ShareCfg/ship_meta_skilltask.json"
 	shipMetaBreakoutCategory    = "ShareCfg/ship_meta_breakout.json"
 	shipStrengthenMetaCategory  = "ShareCfg/ship_strengthen_meta.json"
-	skillDataTemplateCategory   = "sharecfgdata/skill_data_template.json"
-	skillDataTemplateCategory2  = "ShareCfg/skill_data_template.json"
+	skillDataTemplateCategory   = "ShareCfg/skill_data_template.json"
 	itemDataStatisticsCategory  = "sharecfgdata/item_data_statistics.json"
 	itemDataStatisticsCategory2 = "ShareCfg/item_data_statistics.json"
 )
@@ -161,13 +160,7 @@ func GetSkillDataTemplateConfig(skillID uint32) (*SkillDataTemplateConfig, error
 	key := fmt.Sprintf("%d", skillID)
 	entry, err := GetConfigEntry(skillDataTemplateCategory, key)
 	if err != nil {
-		if !errors.Is(err, db.ErrNotFound) {
-			return nil, err
-		}
-		entry, err = GetConfigEntry(skillDataTemplateCategory2, key)
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	var cfg SkillDataTemplateConfig
 	if err := json.Unmarshal(entry.Data, &cfg); err != nil {

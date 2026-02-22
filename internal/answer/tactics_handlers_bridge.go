@@ -20,7 +20,7 @@ const (
 
 	itemConfigCategory    = "sharecfgdata/item_data_statistics.json"
 	shipTemplateCategory  = "sharecfgdata/ship_data_template.json"
-	skillTemplateCategory = "sharecfgdata/skill_data_template.json"
+	skillTemplateCategory = "ShareCfg/skill_data_template.json"
 )
 
 func StartLearnTactics(buffer *[]byte, client *connection.Client) (int, int, error) {

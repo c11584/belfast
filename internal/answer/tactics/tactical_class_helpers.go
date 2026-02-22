@@ -16,16 +16,15 @@ const (
 	lessonResultOK     = 0
 	lessonResultFailed = 1
 
-	lessonItemType         = 10
-	lessonItemUsage        = "usage_book"
-	tacticsSkillLevelExp   = 100
-	defaultSkillMaxLevel   = 10
-	skillCancelTypeAuto    = 0
-	skillCancelTypeManual  = 1
-	itemConfigCategory     = "sharecfgdata/item_data_statistics.json"
-	shipTemplateCategory   = "sharecfgdata/ship_data_template.json"
-	skillTemplateCategory  = "sharecfgdata/skill_data_template.json"
-	skillTemplateCategory2 = "ShareCfg/skill_data_template.json"
+	lessonItemType        = 10
+	lessonItemUsage       = "usage_book"
+	tacticsSkillLevelExp  = 100
+	defaultSkillMaxLevel  = 10
+	skillCancelTypeAuto   = 0
+	skillCancelTypeManual = 1
+	itemConfigCategory    = "sharecfgdata/item_data_statistics.json"
+	shipTemplateCategory  = "sharecfgdata/ship_data_template.json"
+	skillTemplateCategory = "ShareCfg/skill_data_template.json"
 )
 
 type lessonItemConfig struct {
@@ -105,12 +104,7 @@ func loadSkillTemplate(skillID uint32) (*skillTemplateConfig, error) {
 	key := strconv.FormatUint(uint64(skillID), 10)
 	entry, err := orm.GetConfigEntry(skillTemplateCategory, key)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			entry, err = orm.GetConfigEntry(skillTemplateCategory2, key)
-		}
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	var config skillTemplateConfig
 	if err := json.Unmarshal(entry.Data, &config); err != nil {
