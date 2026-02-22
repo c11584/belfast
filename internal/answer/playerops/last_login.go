@@ -18,6 +18,9 @@ func LastLogin(buffer *[]byte, client *connection.Client) (int, int, error) {
 	if _, err := orm.ApplyCommanderMoraleRecovery(client.Commander.CommanderID, now); err != nil {
 		return 0, 11000, err
 	}
+	if err := client.Commander.Load(); err != nil {
+		return 0, 11000, err
+	}
 	sc11000 := protobuf.SC_11000{
 		Timestamp:               proto.Uint32(now),
 		Monday_0OclockTimestamp: proto.Uint32(1606114800), // 23/11/2020 08:00:00
