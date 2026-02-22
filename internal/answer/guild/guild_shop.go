@@ -32,26 +32,29 @@ func GetGuildShop(buffer *[]byte, client *connection.Client) (int, int, error) {
 	result := uint32(0)
 	requestType := payload.GetType()
 	if requestType == guildShopManualRefresh {
-		if state.RefreshCount > 0 {
-			result = 1
-		} else if config.ResetCost > 0 && !client.Commander.HasEnoughResource(8, config.ResetCost) {
+		if !config.CanManualRefresh(state.RefreshCount) {
 			result = 1
 		} else {
-			goods, err = guildshop.RefreshGoods(client.Commander.CommanderID, time.Now(), config, guildshop.RefreshOptions{
-				RefreshCount:    1,
-				NextRefreshTime: state.NextRefreshTime,
-			})
-			if err != nil {
-				return 0, 60034, err
-			}
-			if config.ResetCost > 0 {
-				if err := client.Commander.ConsumeResource(8, config.ResetCost); err != nil {
-					result = 1
+			cost := config.RefreshCost(state.RefreshCount + 1)
+			if cost > 0 && !client.Commander.HasEnoughResource(8, cost) {
+				result = 1
+			} else {
+				goods, err = guildshop.RefreshGoods(client.Commander.CommanderID, time.Now(), config, guildshop.RefreshOptions{
+					RefreshCount:    state.RefreshCount + 1,
+					NextRefreshTime: state.NextRefreshTime,
+				})
+				if err != nil {
+					return 0, 60034, err
 				}
-			}
-			state, goods, err = guildshop.RefreshIfNeeded(client.Commander.CommanderID, time.Now(), config)
-			if err != nil {
-				return 0, 60034, err
+				if cost > 0 {
+					if err := client.Commander.ConsumeResource(8, cost); err != nil {
+						result = 1
+					}
+				}
+				state, goods, err = guildshop.RefreshIfNeeded(client.Commander.CommanderID, time.Now(), config)
+				if err != nil {
+					return 0, 60034, err
+				}
 			}
 		}
 	} else if requestType != guildShopGetShop && requestType != guildShopAutoRefresh {

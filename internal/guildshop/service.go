@@ -7,6 +7,7 @@ import (
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	rngutil "github.com/ggmolly/belfast/internal/rng"
+	"github.com/ggmolly/belfast/internal/shopreset"
 )
 
 const (
@@ -29,7 +30,26 @@ type SetEntry struct {
 type Config struct {
 	StoreEntries []StoreEntry
 	GoodsCount   uint32
-	ResetCost    uint32
+	RefreshLimit uint32
+	RefreshCosts []uint32
+}
+
+func (c *Config) CanManualRefresh(currentCount uint32) bool {
+	if c == nil || c.RefreshLimit == 0 {
+		return true
+	}
+	return currentCount < c.RefreshLimit
+}
+
+func (c *Config) RefreshCost(nextCount uint32) uint32 {
+	if c == nil || nextCount == 0 || len(c.RefreshCosts) == 0 {
+		return 0
+	}
+	index := int(nextCount - 1)
+	if index >= len(c.RefreshCosts) {
+		return c.RefreshCosts[len(c.RefreshCosts)-1]
+	}
+	return c.RefreshCosts[index]
 }
 
 func LoadConfig() (*Config, error) {
@@ -48,13 +68,33 @@ func LoadConfig() (*Config, error) {
 		}
 		entries = append(entries, store)
 	}
-	goodsCount, err := getGuildSetValue("store_goods_quantity")
+	goodsCountEntry, err := getGuildSetEntry("store_goods_quantity")
 	if err != nil {
 		return nil, err
 	}
-	resetCost, err := getGuildSetValue("store_reset_cost")
+	storeRefreshEntry, err := getGuildSetEntry("store_refresh")
 	if err != nil {
 		return nil, err
+	}
+	storeResetCostEntry, err := getGuildSetEntry("store_reset_cost")
+	if err != nil {
+		return nil, err
+	}
+
+	goodsCount := goodsCountEntry.KeyValue
+	refreshLimit := uint32(1)
+	if len(storeRefreshEntry.KeyArgs) >= 2 && storeRefreshEntry.KeyArgs[1] > 0 {
+		refreshLimit = storeRefreshEntry.KeyArgs[1]
+	} else if storeRefreshEntry.KeyValue > 0 {
+		refreshLimit = storeRefreshEntry.KeyValue
+	}
+	refreshCosts := append([]uint32{}, storeResetCostEntry.KeyArgs...)
+	if len(refreshCosts) == 0 {
+		if storeResetCostEntry.KeyValue > 0 {
+			refreshCosts = []uint32{storeResetCostEntry.KeyValue}
+		} else {
+			refreshCosts = []uint32{0}
+		}
 	}
 	if goodsCount == 0 {
 		goodsCount = 10
@@ -62,7 +102,8 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		StoreEntries: entries,
 		GoodsCount:   goodsCount,
-		ResetCost:    resetCost,
+		RefreshLimit: refreshLimit,
+		RefreshCosts: refreshCosts,
 	}, nil
 }
 
@@ -123,7 +164,7 @@ type RefreshOptions struct {
 }
 
 func RefreshGoods(commanderID uint32, now time.Time, config *Config, options RefreshOptions) ([]orm.GuildShopGood, error) {
-	goods := buildGoods(commanderID, config)
+	goods := buildGoods(commanderID, config, refreshSeed(commanderID, now, options.RefreshCount))
 	if err := orm.RefreshGuildShopGoods(commanderID, goods, options.RefreshCount, options.NextRefreshTime); err != nil {
 		return nil, err
 	}
@@ -134,11 +175,11 @@ func LoadGoods(commanderID uint32) ([]orm.GuildShopGood, error) {
 	return orm.LoadGuildShopGoods(commanderID)
 }
 
-func buildGoods(commanderID uint32, config *Config) []orm.GuildShopGood {
+func buildGoods(commanderID uint32, config *Config, seed uint64) []orm.GuildShopGood {
 	if config == nil {
 		return nil
 	}
-	entries := selectGoods(config.StoreEntries, int(config.GoodsCount))
+	entries := selectGoods(config.StoreEntries, int(config.GoodsCount), seed)
 	goods := make([]orm.GuildShopGood, 0, len(entries))
 	for i, entry := range entries {
 		count := entry.GoodsPurchaseLimit
@@ -155,7 +196,7 @@ func buildGoods(commanderID uint32, config *Config) []orm.GuildShopGood {
 	return goods
 }
 
-func selectGoods(entries []StoreEntry, count int) []StoreEntry {
+func selectGoods(entries []StoreEntry, count int, seed uint64) []StoreEntry {
 	if count <= 0 || len(entries) == 0 {
 		return nil
 	}
@@ -164,7 +205,7 @@ func selectGoods(entries []StoreEntry, count int) []StoreEntry {
 	}
 	pool := make([]StoreEntry, len(entries))
 	copy(pool, entries)
-	rng := rngutil.NewLockedRand()
+	rng := rngutil.NewLockedRandFromSeed(seed)
 	selected := make([]StoreEntry, 0, count)
 	for len(selected) < count && len(pool) > 0 {
 		total := uint32(0)
@@ -194,20 +235,32 @@ func selectGoods(entries []StoreEntry, count int) []StoreEntry {
 	return selected
 }
 
-func getGuildSetValue(key string) (uint32, error) {
+func getGuildSetEntry(key string) (*SetEntry, error) {
 	entry, err := orm.GetConfigEntry(guildSetConfigCategory, key)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	var setEntry SetEntry
 	if err := json.Unmarshal(entry.Data, &setEntry); err != nil {
-		return 0, err
+		return nil, err
 	}
-	return setEntry.KeyValue, nil
+	return &setEntry, nil
 }
 
 func nextDailyReset(now time.Time) uint32 {
+	window, err := shopreset.DailyWindow(now)
+	if err == nil {
+		return uint32(window.End.Unix())
+	}
 	utc := now.UTC()
 	next := time.Date(utc.Year(), utc.Month(), utc.Day(), 0, 0, 0, 0, time.UTC).Add(24 * time.Hour)
 	return uint32(next.Unix())
+}
+
+func refreshSeed(commanderID uint32, now time.Time, refreshCount uint32) uint64 {
+	window, err := shopreset.DailyWindow(now)
+	if err != nil {
+		return shopreset.DeterministicSeed(commanderID, uint32(now.UTC().Truncate(24*time.Hour).Unix()), refreshCount)
+	}
+	return shopreset.DeterministicSeed(commanderID, window.Key, refreshCount)
 }

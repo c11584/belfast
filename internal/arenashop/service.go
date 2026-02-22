@@ -7,6 +7,7 @@ import (
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/orm"
 	"github.com/ggmolly/belfast/internal/protobuf"
+	"github.com/ggmolly/belfast/internal/shopreset"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -144,6 +145,10 @@ func buildArenaShop(entries [][]uint32) []*protobuf.ARENASHOP {
 }
 
 func nextDailyReset(now time.Time) uint32 {
+	window, err := shopreset.DailyWindow(now)
+	if err == nil {
+		return uint32(window.End.Unix())
+	}
 	utc := now.UTC()
 	next := time.Date(utc.Year(), utc.Month(), utc.Day(), 0, 0, 0, 0, time.UTC).Add(24 * time.Hour)
 	return uint32(next.Unix())
