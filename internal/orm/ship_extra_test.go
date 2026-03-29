@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -86,5 +87,24 @@ func TestIsPlayableShipTemplateID(t *testing.T) {
 		if got := IsPlayableShipTemplateID(tc.id); got != tc.playable {
 			t.Fatalf("IsPlayableShipTemplateID(%d) = %v, want %v", tc.id, got, tc.playable)
 		}
+	}
+}
+
+func TestValidateOwnedShipTemplateID(t *testing.T) {
+	initCommanderItemTestDB(t)
+	clearTable(t, &ConfigEntry{})
+
+	if err := UpsertConfigEntry(shipDataTemplateCategory, "901011", json.RawMessage(`{"id":901011,"group_type":90101,"strengthen_id":90101,"max_level":100}`)); err != nil {
+		t.Fatalf("seed ship template config: %v", err)
+	}
+	if err := UpsertConfigEntry(shipBreakoutCategory, "901011", json.RawMessage(`{"id":901011,"breakout_id":901012,"pre_id":0,"level":0,"use_gold":0,"use_item":[],"use_char":90101,"use_char_num":1,"weapon_ids":[],"breakout_view":""}`)); err != nil {
+		t.Fatalf("seed ship breakout config: %v", err)
+	}
+
+	if err := ValidateOwnedShipTemplateID(901011); err != nil {
+		t.Fatalf("expected 901011 to be valid, got %v", err)
+	}
+	if err := ValidateOwnedShipTemplateID(900011); !errors.Is(err, db.ErrNotFound) {
+		t.Fatalf("expected 900011 to be rejected, got %v", err)
 	}
 }

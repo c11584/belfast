@@ -132,6 +132,19 @@ func IsPlayableShipTemplateID(shipID uint32) bool {
 	return stage >= 1 && stage <= 4
 }
 
+func ValidateOwnedShipTemplateID(shipID uint32) error {
+	if !IsPlayableShipTemplateID(shipID) {
+		return db.ErrNotFound
+	}
+	if _, err := GetShipTemplateConfig(shipID); err != nil {
+		return db.MapNotFound(err)
+	}
+	if _, err := GetShipBreakoutConfig(shipID); err != nil {
+		return db.MapNotFound(err)
+	}
+	return nil
+}
+
 var (
 	shipRng = rng.NewLockedRand()
 )

@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -62,6 +63,7 @@ func TestCommanderAddShipAndTx(t *testing.T) {
 	initCommanderItemTestDB(t)
 	clearTable(t, &OwnedShip{})
 	clearTable(t, &Ship{})
+	clearTable(t, &ConfigEntry{})
 	clearTable(t, &Commander{})
 
 	shipA := Ship{TemplateID: 4001, Name: "ShipA", EnglishName: "ShipA", RarityID: 2, Star: 1, Type: 1, Nationality: 1, BuildTime: 10}
@@ -71,6 +73,18 @@ func TestCommanderAddShipAndTx(t *testing.T) {
 	}
 	if err := shipB.Create(); err != nil {
 		t.Fatalf("seed shipB: %v", err)
+	}
+	if err := UpsertConfigEntry(shipDataTemplateCategory, "4001", json.RawMessage(`{"id":4001,"group_type":400,"strengthen_id":400,"max_level":100}`)); err != nil {
+		t.Fatalf("seed shipA template config: %v", err)
+	}
+	if err := UpsertConfigEntry(shipBreakoutCategory, "4001", json.RawMessage(`{"id":4001,"breakout_id":4002,"pre_id":0,"level":0,"use_gold":0,"use_item":[],"use_char":400,"use_char_num":1,"weapon_ids":[],"breakout_view":""}`)); err != nil {
+		t.Fatalf("seed shipA breakout config: %v", err)
+	}
+	if err := UpsertConfigEntry(shipDataTemplateCategory, "4002", json.RawMessage(`{"id":4002,"group_type":400,"strengthen_id":400,"max_level":100}`)); err != nil {
+		t.Fatalf("seed shipB template config: %v", err)
+	}
+	if err := UpsertConfigEntry(shipBreakoutCategory, "4002", json.RawMessage(`{"id":4002,"breakout_id":4003,"pre_id":4001,"level":10,"use_gold":100,"use_item":[],"use_char":400,"use_char_num":1,"weapon_ids":[],"breakout_view":""}`)); err != nil {
+		t.Fatalf("seed shipB breakout config: %v", err)
 	}
 	commander := Commander{CommanderID: 61, AccountID: 61, Name: "Owner"}
 	if _, err := db.DefaultStore.Pool.Exec(context.Background(), `INSERT INTO commanders (commander_id, account_id, name) VALUES ($1, $2, $3)`, int64(commander.CommanderID), int64(commander.AccountID), commander.Name); err != nil {
