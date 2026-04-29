@@ -204,11 +204,9 @@ func (server *Server) Run() error {
 	}
 }
 
+// SetAcceptingConnections 切换是否接受新连接，不影响已连接的客户端
 func (server *Server) SetAcceptingConnections(enabled bool) {
 	server.acceptingConnections.Store(enabled)
-	if !enabled {
-		server.DisconnectAll(consts.DR_CONNECTION_TO_SERVER_LOST)
-	}
 }
 
 func (server *Server) IsAcceptingConnections() bool {
@@ -317,15 +315,13 @@ func NewServer(bindAddress string, port int, dispatcher ServerDispatcher) *Serve
 	return server
 }
 
+// SetMaintenance 切换维护模式状态，不影响已连接的客户端
 func (server *Server) SetMaintenance(enabled bool) {
 	value := uint32(0)
 	if enabled {
 		value = 1
 	}
 	atomic.StoreUint32(&server.maintenanceEnabled, value)
-	if enabled {
-		server.DisconnectAll(consts.DR_SERVER_MAINTENANCE)
-	}
 }
 
 func (server *Server) MaintenanceEnabled() bool {

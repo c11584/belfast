@@ -12,7 +12,6 @@ import (
 	"github.com/ggmolly/belfast/internal/api"
 	"github.com/ggmolly/belfast/internal/config"
 	"github.com/ggmolly/belfast/internal/connection"
-	"github.com/ggmolly/belfast/internal/consts"
 	"github.com/ggmolly/belfast/internal/db"
 	"github.com/ggmolly/belfast/internal/debug"
 	"github.com/ggmolly/belfast/internal/logger"
@@ -116,13 +115,12 @@ func Run(opts Options) {
 		}()
 	}
 
-	// wait for SIGINT
+	// 收到 SIGINT 信号后直接退出，不主动断开客户端连接
 	sigChannel := make(chan os.Signal, 1)
 	signal.Notify(sigChannel, os.Interrupt)
 	go func() {
 		<-sigChannel
 		fmt.Printf("\r")
-		server.DisconnectAll(consts.DR_CONNECTION_TO_SERVER_LOST)
 		os.Exit(0)
 	}()
 	// Prepare adb background task
