@@ -19,7 +19,8 @@ var gatewayOnce sync.Once
 
 const gatewayConfigReloadDelay = 200 * time.Millisecond
 
-func RunGateway() {
+// RunGateway 启动 gateway 服务端，返回错误信息供调用方处理
+func RunGateway() error {
 	initGatewayRuntime()
 	parser := argparse.NewParser("gateway", "Azur Lane gateway")
 	configPath := parser.String("", "config", &argparse.Options{
@@ -28,13 +29,11 @@ func RunGateway() {
 		Default:  "gateway.toml",
 	})
 	if err := parser.Parse(os.Args); err != nil {
-		fmt.Print(parser.Usage(err))
-		os.Exit(1)
+		return fmt.Errorf("argument parse error: %w", err)
 	}
 	loadedConfig, err := config.LoadGateway(*configPath)
 	if err != nil {
-		logger.LogEvent("Config", "Load", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("failed to load gateway config '%s': %w", *configPath, err)
 	}
 	if loadedConfig.Mode == "proxy" {
 		runtime := newGatewayProxyRuntime(loadedConfig)
@@ -45,10 +44,9 @@ func RunGateway() {
 			runtime.Update(updated)
 		})
 		if err := runtime.Run(); err != nil {
-			logger.LogEvent("Gateway", "Proxy", fmt.Sprintf("%v", err), logger.LOG_LEVEL_ERROR)
-			os.Exit(1)
+			return fmt.Errorf("gateway proxy error: %w", err)
 		}
-		return
+		return nil
 	}
 	server := connection.NewServer(loadedConfig.BindAddress, loadedConfig.Port, packets.Dispatch)
 	if loadedConfig.RequirePrivateClients != nil {
@@ -64,9 +62,9 @@ func RunGateway() {
 		server.SetRequirePrivateClients(*updated.RequirePrivateClients)
 	})
 	if err := server.Run(); err != nil {
-		logger.LogEvent("Gateway", "Run", fmt.Sprintf("%v", err), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("gateway run error: %w", err)
 	}
+	return nil
 }
 
 func initGatewayRuntime() {

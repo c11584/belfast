@@ -30,8 +30,11 @@ type Options struct {
 
 var runtimeOnce sync.Once
 
-func Run(opts Options) {
-	initRuntime()
+// Run 启动 belfast 服务端，返回错误信息供调用方处理
+func Run(opts Options) error {
+	if err := initRuntime(); err != nil {
+		return err
+	}
 	defaultConfig := opts.DefaultConfig
 	if defaultConfig == "" {
 		defaultConfig = "server.toml"
@@ -68,31 +71,25 @@ func Run(opts Options) {
 		Default:  false,
 	})
 	if err := parser.Parse(os.Args); err != nil {
-		fmt.Print(parser.Usage(err))
-		os.Exit(1)
+		return fmt.Errorf("argument parse error: %w", err)
 	}
 	loadedConfig, err := config.Load(*configPath)
 	if err != nil {
-		logger.LogEvent("Config", "Load", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("failed to load config '%s': %w", *configPath, err)
 	}
 	if err := region.SetCurrent(loadedConfig.Region.Default); err != nil {
-		logger.LogEvent("Config", "Region", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("invalid region: %w", err)
 	}
 	store, err := db.InitDefaultStore(context.Background(), loadedConfig.DB.DSN, loadedConfig.DB.SchemaName)
 	if err != nil {
-		logger.LogEvent("DB", "Init", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("failed to initialize database: %w", err)
 	}
 	if err := ensurePostgresBootstrap(context.Background(), store); err != nil {
-		logger.LogEvent("DB", "Seed", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("database bootstrap failed: %w", err)
 	}
 	hasData, err := db.HasGameData(context.Background(), store)
 	if err != nil {
-		logger.LogEvent("DB", "Probe", err.Error(), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("failed to check game data: %w", err)
 	}
 	if !hasData {
 		misc.UpdateAllData(region.Current())
@@ -134,14 +131,13 @@ func Run(opts Options) {
 		}
 	}
 	if err := server.Run(); err != nil {
-		logger.LogEvent("Server", "Run", fmt.Sprintf("%v", err), logger.LOG_LEVEL_ERROR)
-		os.Exit(1)
+		return fmt.Errorf("server run error: %w", err)
 	}
+	return nil
 }
 
+// ensurePostgresBootstrap 初始化数据库权限和角色
 func ensurePostgresBootstrap(ctx context.Context, store *db.Store) error {
-	// Seed permissions/roles required by the REST API on a fresh DB.
-	// Idempotent.
 	if _, err := store.Queries.Ping(ctx); err != nil {
 		return err
 	}
@@ -151,14 +147,17 @@ func ensurePostgresBootstrap(ctx context.Context, store *db.Store) error {
 	return nil
 }
 
-func initRuntime() {
+// initRuntime 初始化运行时环境，校验区域和注册包处理器
+func initRuntime() error {
+	var err error
 	runtimeOnce.Do(func() {
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 		currentRegion := region.Current()
 		if _, ok := validRegions[currentRegion]; !ok {
-			logger.LogEvent("Environment", "Invalid", fmt.Sprintf("AL_REGION is not a valid region ('%s' was supplied)", currentRegion), logger.LOG_LEVEL_ERROR)
-			os.Exit(1)
+			err = fmt.Errorf("AL_REGION is not a valid region ('%s' was supplied)", currentRegion)
+			return
 		}
 		registerPackets()
 	})
+	return err
 }
